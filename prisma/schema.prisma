@@ -1,0 +1,188 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// role: USER | ADMIN
+// leaderboardDisplay: FULL_NAME | FIRST_NAME_INITIAL | ANONYMOUS
+model User {
+  id                 String   @id @default(cuid())
+  name               String
+  email              String   @unique
+  phone              String?  @unique
+  passwordHash       String
+  avatarUrl          String?
+  role               String   @default("USER")
+  emailVerified      Boolean  @default(false)
+  phoneVerified      Boolean  @default(false)
+  leaderboardDisplay String   @default("FIRST_NAME_INITIAL")
+  isBlocked          Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  riderProfile   RiderProfile?
+  donationsMade  Donation[]     @relation("PassengerDonations")
+  rideJoins      RideJoin[]
+  reportsFiled   Report[]       @relation("ReportsFiled")
+  reportsAgainst Report[]       @relation("ReportsAgainst")
+  blocksMade     Block[]        @relation("BlocksMade")
+  blocksAgainst  Block[]        @relation("BlocksAgainst")
+  notifications  Notification[]
+  auditLogs      AuditLog[]
+}
+
+// vehicleType: TWO_WHEELER | FOUR_WHEELER
+model RiderProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id])
+  vehicleType       String
+  vehicleMake       String
+  vehicleModel      String
+  vehiclePlate      String
+  seatsAvailable    Int      @default(1)
+  isVehicleVerified     Boolean  @default(false)
+  isSharingActive       Boolean  @default(false)
+  hiddenFromLeaderboard Boolean  @default(false)
+  charityCode           String   @unique
+  bio                   String?
+  memberSince           DateTime @default(now())
+
+  rideOffers RideOffer[]
+  donations  Donation[]  @relation("RiderDonations")
+}
+
+model Charity {
+  id                 String   @id @default(cuid())
+  name               String
+  registrationNumber String?
+  description        String
+  beneficiaryUpiVpa  String
+  beneficiaryName    String
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+
+  campaigns Campaign[]
+  donations Donation[]
+}
+
+model Campaign {
+  id                     String   @id @default(cuid())
+  charityId              String
+  charity                Charity  @relation(fields: [charityId], references: [id])
+  name                   String
+  description            String
+  goalAmount             Float?
+  amountDistributed      Float    @default(0)
+  beneficiariesSupported Int      @default(0)
+  isActive               Boolean  @default(true)
+  startedAt              DateTime @default(now())
+
+  donations Donation[]
+}
+
+// status: ACTIVE | COMPLETED | CANCELLED
+model RideOffer {
+  id             String   @id @default(cuid())
+  riderId        String
+  rider          RiderProfile @relation(fields: [riderId], references: [id])
+  vehicleType    String
+  seatsAvailable Int
+  startLocation  String
+  destination    String
+  status         String   @default("ACTIVE")
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  joins RideJoin[]
+}
+
+// status: REQUESTED | ACCEPTED | DECLINED | COMPLETED | CANCELLED
+model RideJoin {
+  id          String    @id @default(cuid())
+  rideOfferId String
+  rideOffer   RideOffer @relation(fields: [rideOfferId], references: [id])
+  passengerId String
+  passenger   User      @relation(fields: [passengerId], references: [id])
+  status      String    @default("REQUESTED")
+  createdAt   DateTime  @default(now())
+
+  donations Donation[]
+}
+
+// status: PENDING | SUCCESS | FAILED | REFUNDED
+model Donation {
+  id                       String    @id @default(cuid())
+  donationRef              String    @unique
+  amount                   Float
+  riderId                  String?
+  rider                    RiderProfile? @relation("RiderDonations", fields: [riderId], references: [id])
+  passengerId              String?
+  passenger                User?     @relation("PassengerDonations", fields: [passengerId], references: [id])
+  rideJoinId               String?
+  rideJoin                 RideJoin? @relation(fields: [rideJoinId], references: [id])
+  charityId                String
+  charity                  Charity   @relation(fields: [charityId], references: [id])
+  campaignId               String?
+  campaign                 Campaign? @relation(fields: [campaignId], references: [id])
+  status                   String    @default("PENDING")
+  paymentMethod            String    @default("UPI")
+  transactionRef           String?   @unique
+  donorDisplayNameSnapshot String?
+  createdAt                DateTime  @default(now())
+  completedAt              DateTime?
+
+  @@index([riderId])
+  @@index([status])
+}
+
+// reason: freeform; status: OPEN | REVIEWING | RESOLVED | DISMISSED
+model Report {
+  id         String   @id @default(cuid())
+  reporterId String
+  reporter   User     @relation("ReportsFiled", fields: [reporterId], references: [id])
+  reportedId String
+  reported   User     @relation("ReportsAgainst", fields: [reportedId], references: [id])
+  reason     String
+  details    String?
+  status     String   @default("OPEN")
+  createdAt  DateTime @default(now())
+}
+
+model Block {
+  id         String   @id @default(cuid())
+  blockerId  String
+  blocker    User     @relation("BlocksMade", fields: [blockerId], references: [id])
+  blockedId  String
+  blocked    User     @relation("BlocksAgainst", fields: [blockedId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String
+  title     String
+  body      String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id])
+  action     String
+  targetType String?
+  targetId   String?
+  metadata   String?
+  createdAt  DateTime @default(now())
+}

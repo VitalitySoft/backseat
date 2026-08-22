@@ -1,0 +1,128 @@
+@import "tailwindcss";
+
+:root {
+  --color-ink: #1e2749;
+  --color-ink-deep: #12172b;
+  --color-ink-soft: #2c3660;
+
+  --color-paper: #fbf6ec;
+  --color-paper-dim: #f3ecdc;
+  --color-paper-line: #e3d9c2;
+
+  --color-marigold: #e8a33d;
+  --color-marigold-deep: #c47f22;
+  --color-marigold-pale: #fbe6bf;
+
+  --color-rose: #e2697d;
+  --color-rose-deep: #c14a5e;
+  --color-rose-pale: #f8dde2;
+
+  --color-banyan: #3f7566;
+  --color-banyan-deep: #2c5548;
+  --color-banyan-pale: #dcece5;
+
+  --color-text: #23283a;
+  --color-text-soft: #5b5f72;
+  --color-on-ink: #f6f1e4;
+  --color-on-ink-soft: #b9bfe0;
+
+  --font-display: var(--font-fraunces);
+  --font-body: var(--font-manrope);
+  --font-mono: var(--font-plex-mono);
+}
+
+@theme inline {
+  --color-ink: var(--color-ink);
+  --color-ink-deep: var(--color-ink-deep);
+  --color-ink-soft: var(--color-ink-soft);
+
+  --color-paper: var(--color-paper);
+  --color-paper-dim: var(--color-paper-dim);
+  --color-paper-line: var(--color-paper-line);
+
+  --color-marigold: var(--color-marigold);
+  --color-marigold-deep: var(--color-marigold-deep);
+  --color-marigold-pale: var(--color-marigold-pale);
+
+  --color-rose: var(--color-rose);
+  --color-rose-deep: var(--color-rose-deep);
+  --color-rose-pale: var(--color-rose-pale);
+
+  --color-banyan: var(--color-banyan);
+  --color-banyan-deep: var(--color-banyan-deep);
+  --color-banyan-pale: var(--color-banyan-pale);
+
+  --color-text: var(--color-text);
+  --color-text-soft: var(--color-text-soft);
+  --color-on-ink: var(--color-on-ink);
+  --color-on-ink-soft: var(--color-on-ink-soft);
+
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-text);
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+}
+
+h1, h2, h3, h4, .font-display {
+  font-family: var(--font-display), Georgia, serif;
+}
+
+::selection {
+  background: var(--color-marigold-pale);
+  color: var(--color-ink);
+}
+
+/* Perforated "ticket" edge — signature motif reused across ride cards, QR display, and receipts */
+.ticket-perforation {
+  position: relative;
+}
+.ticket-perforation::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  right: -1px;
+  top: 0;
+  border-top: 2px dashed var(--color-paper-line);
+}
+
+.ticket-notch {
+  position: relative;
+}
+.ticket-notch::before,
+.ticket-notch::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  background: var(--color-paper);
+  border-radius: 999px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.ticket-notch::before {
+  left: -9px;
+}
+.ticket-notch::after {
+  right: -9px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  scrollbar-width: none;
+}
