@@ -7,6 +7,7 @@ export const metadata = { title: "Become a Charity Rider — Backseat" };
 export default async function BecomeARiderPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/become-a-rider");
+  if (user.role === "ADMIN") redirect("/admin");
   if (user.riderProfile) redirect("/dashboard");
 
   return (

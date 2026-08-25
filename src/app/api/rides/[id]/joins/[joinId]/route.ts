@@ -47,6 +47,16 @@ export async function PATCH(
         },
       });
     }
+    if (parsed.data.status === "DECLINED") {
+      await prisma.notification.create({
+        data: {
+          userId: join.passengerId,
+          type: "RIDE_DECLINED",
+          title: "Ride request declined",
+          body: `Your request to join the ride from ${join.rideOffer.startLocation} to ${join.rideOffer.destination} wasn't accepted this time.`,
+        },
+      });
+    }
     if (parsed.data.status === "COMPLETED") {
       await prisma.notification.create({
         data: {

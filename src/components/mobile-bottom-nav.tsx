@@ -2,34 +2,42 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, QrCode, LayoutDashboard, User, LogIn } from "lucide-react";
+import { Home, Search, Bike, LayoutDashboard, User, LogIn, ShieldCheck } from "lucide-react";
 import type { NavUser } from "@/components/nav-types";
 
 export function MobileBottomNav({ user }: { user: NavUser | null }) {
   const pathname = usePathname();
   if (pathname.startsWith("/admin")) return null;
 
-  const items = user
-    ? user.isRider
-      ? [
-          { href: "/", label: "Home", icon: Home },
-          { href: "/find-a-ride", label: "Find", icon: Search },
-          { href: "/dashboard/qr", label: "QR", icon: QrCode, emphasize: true },
-          { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-          { href: "/dashboard/profile", label: "Profile", icon: User },
-        ]
+  const isAdmin = user?.role === "ADMIN";
+
+  const items = isAdmin
+    ? [
+        { href: "/", label: "Home", icon: Home },
+        { href: "/admin", label: "Admin", icon: ShieldCheck, emphasize: true },
+      ]
+    : user
+      ? user.isRider
+        ? [
+            { href: "/", label: "Home", icon: Home },
+            { href: "/find-a-ride", label: "Find", icon: Search },
+            { href: "/offer-a-ride", label: "Offer", icon: Bike, emphasize: true },
+            { href: "/dashboard/my-rides", label: "My Rides", icon: LayoutDashboard },
+            { href: "/dashboard/profile", label: "Profile", icon: User },
+          ]
+        : [
+            { href: "/", label: "Home", icon: Home },
+            { href: "/find-a-ride", label: "Find", icon: Search },
+            { href: "/offer-a-ride", label: "Offer", icon: Bike, emphasize: true },
+            { href: "/dashboard/my-trips", label: "My Trips", icon: LayoutDashboard },
+            { href: "/dashboard/profile", label: "Profile", icon: User },
+          ]
       : [
           { href: "/", label: "Home", icon: Home },
           { href: "/find-a-ride", label: "Find", icon: Search },
-          { href: "/dashboard", label: "My Trips", icon: LayoutDashboard },
-          { href: "/dashboard/profile", label: "Profile", icon: User },
-        ]
-    : [
-        { href: "/", label: "Home", icon: Home },
-        { href: "/find-a-ride", label: "Find", icon: Search },
-        { href: "/offer-a-ride", label: "Offer", icon: QrCode },
-        { href: "/login", label: "Login", icon: LogIn },
-      ];
+          { href: "/offer-a-ride", label: "Offer", icon: Bike },
+          { href: "/login", label: "Login", icon: LogIn },
+        ];
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-paper-line bg-white/95 backdrop-blur md:hidden">
