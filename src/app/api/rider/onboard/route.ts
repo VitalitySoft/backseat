@@ -18,6 +18,10 @@ export async function POST(req: Request) {
   try {
     const user = await requireUser();
 
+    if (user.role === "ADMIN") {
+      return NextResponse.json({ error: "Admin accounts cannot register as riders" }, { status: 403 });
+    }
+
     const existing = await prisma.riderProfile.findUnique({ where: { userId: user.id } });
     if (existing) {
       return NextResponse.json({ error: "You already have a rider profile" }, { status: 409 });
@@ -50,6 +54,16 @@ export async function POST(req: Request) {
         targetType: "RiderProfile",
         targetId: rider.id,
       },
+    });
+
+    const admins = await prisma.user.findMany({ where: { role: "ADMIN" }, select: { id: true } });
+    await prisma.notification.createMany({
+      data: admins.map((admin) => ({
+        userId: admin.id,
+        type: "VEHICLE_REGISTERED",
+        title: "New vehicle registered",
+        body: `${user.name} registered a ${parsed.data.vehicleType === "TWO_WHEELER" ? "two-wheeler" : "four-wheeler"} (${parsed.data.vehicleMake} ${parsed.data.vehicleModel}) — pending verification.`,
+      })),
     });
 
     return NextResponse.json({ id: rider.id });

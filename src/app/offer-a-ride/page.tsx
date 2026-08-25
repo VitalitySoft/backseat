@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Bike, Car, Users } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -12,6 +13,8 @@ export const dynamic = "force-dynamic";
 
 export default async function OfferARidePage() {
   const user = await getCurrentUser();
+
+  if (user?.role === "ADMIN") redirect("/admin");
 
   if (!user) {
     return (

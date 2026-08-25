@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, X, Flag } from "lucide-react";
+import { Check, X, Flag, QrCode, ChevronUp } from "lucide-react";
+import { QrDisplay } from "@/app/dashboard/qr/qr-display";
 
 export function JoinRequestActions({ rideId, joinId }: { rideId: string; joinId: string }) {
   const router = useRouter();
@@ -39,9 +40,30 @@ export function JoinRequestActions({ rideId, joinId }: { rideId: string; joinId:
   );
 }
 
-export function CompleteJoinButton({ rideId, joinId }: { rideId: string; joinId: string }) {
+/**
+ * Handles the ACCEPTED -> COMPLETED transition, and either way lets the rider
+ * pull up their charity QR right on this page — no need to jump to a separate
+ * screen while the passenger is still standing there.
+ */
+export function JoinCompletionPanel({
+  rideId,
+  joinId,
+  status,
+  charityCode,
+  riderName,
+  isVehicleVerified,
+}: {
+  rideId: string;
+  joinId: string;
+  status: "ACCEPTED" | "COMPLETED";
+  charityCode: string;
+  riderName: string;
+  isVehicleVerified: boolean;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(status === "COMPLETED");
+  const [showQr, setShowQr] = useState(false);
 
   async function complete() {
     setLoading(true);
@@ -51,17 +73,37 @@ export function CompleteJoinButton({ rideId, joinId }: { rideId: string; joinId:
       body: JSON.stringify({ status: "COMPLETED" }),
     });
     setLoading(false);
+    setIsCompleted(true);
+    setShowQr(true);
     router.refresh();
   }
 
   return (
-    <button
-      onClick={complete}
-      disabled={loading}
-      className="flex items-center gap-1 rounded-full bg-paper-dim px-3 py-1.5 text-xs font-semibold text-ink hover:bg-marigold-pale"
-    >
-      <Flag className="h-3.5 w-3.5" /> Mark travelled
-    </button>
+    <div>
+      {!isCompleted ? (
+        <button
+          onClick={complete}
+          disabled={loading}
+          className="flex items-center gap-1 rounded-full bg-paper-dim px-3 py-1.5 text-xs font-semibold text-ink hover:bg-marigold-pale disabled:opacity-50"
+        >
+          <Flag className="h-3.5 w-3.5" /> {loading ? "Marking…" : "Mark travelled"}
+        </button>
+      ) : isVehicleVerified ? (
+        <button
+          onClick={() => setShowQr((v) => !v)}
+          className="flex items-center gap-1 rounded-full bg-marigold-pale px-3 py-1.5 text-xs font-semibold text-marigold-deep hover:bg-marigold hover:text-ink"
+        >
+          {showQr ? <ChevronUp className="h-3.5 w-3.5" /> : <QrCode className="h-3.5 w-3.5" />}
+          {showQr ? "Hide QR" : "Show Charity QR"}
+        </button>
+      ) : null}
+
+      {showQr && (
+        <div className="mt-4">
+          <QrDisplay charityCode={charityCode} riderName={riderName} />
+        </div>
+      )}
+    </div>
   );
 }
 

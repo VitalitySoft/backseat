@@ -3,7 +3,7 @@ import Link from "next/link";
 import { MapPin, Users } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { JoinRequestActions, CompleteJoinButton, RideOfferStatusButton } from "./ride-actions";
+import { JoinRequestActions, JoinCompletionPanel, RideOfferStatusButton } from "./ride-actions";
 
 export const metadata = { title: "My Rides — Backseat" };
 export const dynamic = "force-dynamic";
@@ -26,9 +26,10 @@ export default async function MyRidesPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/dashboard/my-rides");
   if (!user.riderProfile) redirect("/become-a-rider");
+  const rider = user.riderProfile;
 
   const offers = await prisma.rideOffer.findMany({
-    where: { riderId: user.riderProfile.id },
+    where: { riderId: rider.id },
     include: { joins: { include: { passenger: true }, orderBy: { createdAt: "desc" } } },
     orderBy: { createdAt: "desc" },
   });
@@ -86,27 +87,33 @@ export default async function MyRidesPage() {
               )}
               <div className="space-y-2">
                 {offer.joins.map((join) => (
-                  <div
-                    key={join.id}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-paper-dim/60 px-4 py-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-ink text-xs font-semibold text-on-ink">
-                        {join.passenger.name.charAt(0).toUpperCase()}
-                      </span>
-                      <div>
-                        <p className="text-sm font-medium text-ink">{join.passenger.name}</p>
-                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${JOIN_STATUS_STYLES[join.status]}`}>
-                          {join.status}
+                  <div key={join.id} className="rounded-xl bg-paper-dim/60 px-4 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-ink text-xs font-semibold text-on-ink">
+                          {join.passenger.name.charAt(0).toUpperCase()}
                         </span>
+                        <div>
+                          <p className="text-sm font-medium text-ink">{join.passenger.name}</p>
+                          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${JOIN_STATUS_STYLES[join.status]}`}>
+                            {join.status}
+                          </span>
+                        </div>
                       </div>
+                      {join.status === "REQUESTED" && (
+                        <JoinRequestActions rideId={offer.id} joinId={join.id} />
+                      )}
+                      {(join.status === "ACCEPTED" || join.status === "COMPLETED") && (
+                        <JoinCompletionPanel
+                          rideId={offer.id}
+                          joinId={join.id}
+                          status={join.status}
+                          charityCode={rider.charityCode}
+                          riderName={user.name}
+                          isVehicleVerified={rider.isVehicleVerified}
+                        />
+                      )}
                     </div>
-                    {join.status === "REQUESTED" && (
-                      <JoinRequestActions rideId={offer.id} joinId={join.id} />
-                    )}
-                    {join.status === "ACCEPTED" && (
-                      <CompleteJoinButton rideId={offer.id} joinId={join.id} />
-                    )}
                   </div>
                 ))}
               </div>

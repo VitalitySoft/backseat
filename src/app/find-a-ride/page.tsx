@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Bike, Car, MapPin, Users, ShieldCheck } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
 import { SearchForm } from "./search-form";
 import { VEHICLE_TYPE_LABELS } from "@/lib/constants";
 import { TicketShell } from "@/components/ui/ticket-shell";
@@ -14,6 +16,9 @@ export default async function FindARidePage({
   searchParams: Promise<{ from?: string; to?: string; vehicleType?: string }>;
 }) {
   const { from, to, vehicleType } = await searchParams;
+
+  const user = await getCurrentUser();
+  if (user?.role === "ADMIN") redirect("/admin");
 
   const offers = await prisma.rideOffer.findMany({
     where: {
