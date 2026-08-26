@@ -7,12 +7,26 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     const { id } = await params;
     const user = await requireUser();
 
+    if (user.role === "ADMIN") {
+      return NextResponse.json({ error: "Admin accounts cannot join rides" }, { status: 403 });
+    }
+
     const offer = await prisma.rideOffer.findUnique({ where: { id }, include: { rider: true } });
     if (!offer || offer.status !== "ACTIVE") {
       return NextResponse.json({ error: "This ride is no longer available" }, { status: 404 });
     }
+    if (offer.departureAt && offer.departureAt.getTime() <= Date.now()) {
+      return NextResponse.json({ error: "This ride has already departed" }, { status: 409 });
+    }
     if (offer.rider.userId === user.id) {
       return NextResponse.json({ error: "You cannot join your own ride offer" }, { status: 400 });
+    }
+
+    const acceptedCount = await prisma.rideJoin.count({
+      where: { rideOfferId: id, status: { in: ["ACCEPTED", "COMPLETED"] } },
+    });
+    if (acceptedCount >= offer.seatsAvailable) {
+      return NextResponse.json({ error: "All seats for this ride are already filled" }, { status: 409 });
     }
 
     const existing = await prisma.rideJoin.findFirst({
@@ -32,6 +46,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
         type: "RIDE_REQUEST",
         title: "New ride request",
         body: `${user.name} would like to join your ride from ${offer.startLocation} to ${offer.destination}.`,
+        link: "/dashboard/my-rides",
       },
     });
 

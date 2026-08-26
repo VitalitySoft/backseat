@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Logo } from "@/components/logo";
 
 const COLUMNS = [
@@ -68,6 +69,12 @@ export function SiteFooter() {
         <div className="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-on-ink-soft/70 md:flex-row md:items-center md:justify-between">
           <p>© {new Date().getFullYear()} Backseat. Not a transportation or fare-collection service.</p>
           <p>Donations are collected on behalf of registered charity partners and are not tax receipts unless stated.</p>
+        </div>
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2 border-t border-white/10 pt-4 text-xs text-on-ink-soft/60">
+          <p>Ideology, implemented and maintained by</p>
+          <span className="inline-flex items-center rounded-md bg-white px-2.5 py-1.5">
+            <Image src="/vitalitysoft-logo.png" alt="VitalitySoft" width={1482} height={346} className="h-6 w-auto" />
+          </span>
         </div>
       </div>
     </footer>

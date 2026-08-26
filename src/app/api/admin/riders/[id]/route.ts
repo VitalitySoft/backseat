@@ -35,6 +35,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           type: "VEHICLE_VERIFIED",
           title: "Your vehicle is verified",
           body: "Your charity QR is now active — you can offer rides and receive donations.",
+          link: "/offer-a-ride",
         },
       });
     }

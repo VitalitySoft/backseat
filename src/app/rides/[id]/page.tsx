@@ -1,9 +1,10 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { Bike, Car, ShieldCheck, MapPin, Users } from "lucide-react";
+import { Bike, Car, ShieldCheck, MapPin, Users, Clock } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { VEHICLE_TYPE_LABELS } from "@/lib/constants";
+import { formatDeparture, hasDeparted } from "@/lib/format";
 import { JoinButton } from "./join-button";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ export default async function RideDetailPage({ params }: { params: Promise<{ id:
   ]);
 
   if (!offer) notFound();
+  if (user?.role === "ADMIN") redirect("/admin");
 
   const Icon = offer.vehicleType === "TWO_WHEELER" ? Bike : Car;
   const isOwnRide = user?.riderProfile?.id === offer.riderId;
@@ -54,6 +56,9 @@ export default async function RideDetailPage({ params }: { params: Promise<{ id:
         )}
 
         <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-text-soft">
+          <span className="flex items-center gap-1.5">
+            <Clock className="h-4 w-4" /> {formatDeparture(offer.departureAt)}
+          </span>
           <span className="flex items-center gap-1.5">
             <Users className="h-4 w-4" /> {offer.seatsAvailable} seat(s) available
           </span>
@@ -97,7 +102,7 @@ export default async function RideDetailPage({ params }: { params: Promise<{ id:
               </Link>
               .
             </p>
-          ) : offer.status !== "ACTIVE" ? (
+          ) : offer.status !== "ACTIVE" || hasDeparted(offer.departureAt) ? (
             <p className="rounded-2xl bg-paper-dim px-5 py-4 text-sm text-text-soft">
               This ride is no longer accepting requests.
             </p>
