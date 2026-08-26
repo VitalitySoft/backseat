@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Bike, Car, ShieldCheck, MapPin, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
@@ -19,6 +19,7 @@ export default async function RideDetailPage({ params }: { params: Promise<{ id:
   ]);
 
   if (!offer) notFound();
+  if (user?.role === "ADMIN") redirect("/admin");
 
   const Icon = offer.vehicleType === "TWO_WHEELER" ? Bike : Car;
   const isOwnRide = user?.riderProfile?.id === offer.riderId;
