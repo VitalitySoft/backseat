@@ -35,6 +35,19 @@ export async function PATCH(
       return NextResponse.json({ error: "Only the rider can update this request" }, { status: 403 });
     }
 
+    // A ride can never carry more passengers than the seats the rider actually offered.
+    if (parsed.data.status === "ACCEPTED") {
+      const acceptedCount = await prisma.rideJoin.count({
+        where: { rideOfferId: id, status: { in: ["ACCEPTED", "COMPLETED"] } },
+      });
+      if (acceptedCount >= join.rideOffer.seatsAvailable) {
+        return NextResponse.json(
+          { error: `All ${join.rideOffer.seatsAvailable} seat(s) for this ride are already filled.` },
+          { status: 409 },
+        );
+      }
+    }
+
     await prisma.rideJoin.update({ where: { id: joinId }, data: { status: parsed.data.status } });
 
     if (parsed.data.status === "ACCEPTED") {
@@ -44,6 +57,7 @@ export async function PATCH(
           type: "RIDE_ACCEPTED",
           title: "Ride request accepted",
           body: `Your request to join the ride from ${join.rideOffer.startLocation} to ${join.rideOffer.destination} was accepted.`,
+          link: "/dashboard/my-trips",
         },
       });
     }
@@ -54,6 +68,7 @@ export async function PATCH(
           type: "RIDE_DECLINED",
           title: "Ride request declined",
           body: `Your request to join the ride from ${join.rideOffer.startLocation} to ${join.rideOffer.destination} wasn't accepted this time.`,
+          link: "/dashboard/my-trips",
         },
       });
     }
@@ -64,6 +79,7 @@ export async function PATCH(
           type: "RIDE_COMPLETED",
           title: "Ride completed",
           body: "Your ride is marked complete. If you'd like, you can scan the rider's charity QR to support their cause.",
+          link: "/dashboard/my-trips",
         },
       });
     }

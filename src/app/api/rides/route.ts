@@ -8,6 +8,7 @@ const createSchema = z.object({
   startLocation: z.string().trim().min(2).max(120),
   destination: z.string().trim().min(2).max(120),
   seatsAvailable: z.number().int().min(1).max(6),
+  departureAt: z.string().datetime().optional().or(z.literal("")),
   notes: z.string().trim().max(240).optional(),
 });
 
@@ -37,6 +38,10 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
+    const departureAt = parsed.data.departureAt ? new Date(parsed.data.departureAt) : undefined;
+    if (departureAt && departureAt.getTime() <= Date.now()) {
+      return NextResponse.json({ error: "Departure time must be in the future." }, { status: 400 });
+    }
 
     const offer = await prisma.rideOffer.create({
       data: {
@@ -45,6 +50,7 @@ export async function POST(req: Request) {
         seatsAvailable: parsed.data.seatsAvailable,
         startLocation: parsed.data.startLocation,
         destination: parsed.data.destination,
+        departureAt,
         notes: parsed.data.notes,
         status: "ACTIVE",
       },
@@ -71,6 +77,7 @@ export async function GET(req: Request) {
     where: {
       status: "ACTIVE",
       rider: { isSharingActive: true, isVehicleVerified: true },
+      OR: [{ departureAt: null }, { departureAt: { gt: new Date() } }],
       ...(from ? { startLocation: { contains: from } } : {}),
       ...(to ? { destination: { contains: to } } : {}),
       ...(vehicleType && VEHICLE_TYPES.includes(vehicleType as never)
@@ -89,6 +96,7 @@ export async function GET(req: Request) {
       destination: o.destination,
       seatsAvailable: o.seatsAvailable,
       vehicleType: o.vehicleType,
+      departureAt: o.departureAt,
       notes: o.notes,
       createdAt: o.createdAt,
       rider: {

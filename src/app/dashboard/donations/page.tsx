@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { MapPin } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { displayNameFor } from "@/lib/stats";
@@ -20,13 +21,17 @@ export default async function DonationsPage() {
   const donations = user.riderProfile
     ? await prisma.donation.findMany({
         where: { riderId: user.riderProfile.id },
-        include: { passenger: true, campaign: true },
+        include: { passenger: true, campaign: true, rideJoin: { include: { rideOffer: true } } },
         orderBy: { createdAt: "desc" },
         take: 100,
       })
     : await prisma.donation.findMany({
         where: { passengerId: user.id },
-        include: { rider: { include: { user: true } }, campaign: true },
+        include: {
+          rider: { include: { user: true } },
+          campaign: true,
+          rideJoin: { include: { rideOffer: true } },
+        },
         orderBy: { createdAt: "desc" },
         take: 100,
       });
@@ -38,8 +43,8 @@ export default async function DonationsPage() {
       </h1>
       <p className="mt-2 text-text-soft">
         {user.riderProfile
-          ? "Every voluntary gift given through your charity QR."
-          : "Your giving history across every ride."}
+          ? "Every voluntary gift given through your charity QR — and the ride it came from, where known."
+          : "Your giving history across every ride — who you rode with, and what you gave."}
       </p>
 
       <div className="mt-8 overflow-hidden rounded-3xl border border-paper-line bg-white">
@@ -47,34 +52,46 @@ export default async function DonationsPage() {
           <p className="px-6 py-10 text-center text-text-soft">No donations yet.</p>
         )}
         <ul className="divide-y divide-paper-line">
-          {donations.map((d) => (
-            <li key={d.id} className="flex items-center justify-between gap-4 px-5 py-4">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-ink">
-                  {user.riderProfile
-                    ? "passenger" in d
-                      ? displayNameFor(
-                          d.passenger?.name ?? d.donorDisplayNameSnapshot ?? "A kind traveller",
-                          d.passenger?.leaderboardDisplay ?? "ANONYMOUS",
-                        )
-                      : d.donorDisplayNameSnapshot
-                    : "rider" in d
-                      ? d.rider?.user.name
-                      : "—"}
-                </p>
-                <p className="mt-0.5 text-xs text-text-soft">
-                  {new Date(d.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                  {d.campaign ? ` · ${d.campaign.name}` : ""}
-                </p>
-              </div>
-              <div className="flex shrink-0 items-center gap-3">
-                <span className="font-display text-base text-ink">₹{d.amount.toLocaleString("en-IN")}</span>
-                <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${STATUS_STYLES[d.status]}`}>
-                  {d.status}
-                </span>
-              </div>
-            </li>
-          ))}
+          {donations.map((d) => {
+            const route = d.rideJoin?.rideOffer
+              ? `${d.rideJoin.rideOffer.startLocation} → ${d.rideJoin.rideOffer.destination}`
+              : null;
+            return (
+              <li key={d.id} className="flex items-center justify-between gap-4 px-5 py-4">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-ink">
+                    {user.riderProfile
+                      ? "passenger" in d
+                        ? displayNameFor(
+                            d.passenger?.name ?? d.donorDisplayNameSnapshot ?? "A kind traveller",
+                            d.passenger?.leaderboardDisplay ?? "ANONYMOUS",
+                          )
+                        : d.donorDisplayNameSnapshot
+                      : "rider" in d
+                        ? d.rider?.user.name
+                        : "—"}
+                  </p>
+                  <p className="mt-0.5 text-xs text-text-soft">
+                    {new Date(d.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                    {d.campaign ? ` · ${d.campaign.name}` : ""}
+                  </p>
+                  {route ? (
+                    <p className="mt-1 flex items-center gap-1 text-xs text-marigold-deep">
+                      <MapPin className="h-3 w-3" /> {route}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-xs text-text-soft/70">Not linked to a specific ride</p>
+                  )}
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-1.5">
+                  <span className="font-display text-base text-ink">₹{d.amount.toLocaleString("en-IN")}</span>
+                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${STATUS_STYLES[d.status]}`}>
+                    {d.status}
+                  </span>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       </div>
     </div>

@@ -7,6 +7,7 @@ import { LinkButton } from "@/components/ui/button";
 import { SharingToggle } from "@/components/sharing-toggle";
 import { OfferRideForm } from "./offer-ride-form";
 import { VEHICLE_TYPE_LABELS } from "@/lib/constants";
+import { formatDeparture } from "@/lib/format";
 
 export const metadata = { title: "Offer a Ride — Backseat" };
 export const dynamic = "force-dynamic";
@@ -97,6 +98,7 @@ export default async function OfferARidePage() {
                   <p className="font-medium text-ink">
                     {o.startLocation} → {o.destination}
                   </p>
+                  <p className="mt-0.5 text-xs text-text-soft">{formatDeparture(o.departureAt)}</p>
                   <p className="mt-0.5 flex items-center gap-1.5 text-xs text-text-soft">
                     <Users className="h-3.5 w-3.5" /> {o.joins.length} request(s) so far
                   </p>

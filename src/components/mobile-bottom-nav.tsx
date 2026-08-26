@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, Bike, LayoutDashboard, User, LogIn, ShieldCheck } from "lucide-react";
+import { Home, Search, Bike, Car, ClipboardList, User, LogIn, ShieldCheck } from "lucide-react";
 import type { NavUser } from "@/components/nav-types";
 
 export function MobileBottomNav({ user }: { user: NavUser | null }) {
@@ -17,21 +17,13 @@ export function MobileBottomNav({ user }: { user: NavUser | null }) {
         { href: "/admin", label: "Admin", icon: ShieldCheck, emphasize: true },
       ]
     : user
-      ? user.isRider
-        ? [
-            { href: "/", label: "Home", icon: Home },
-            { href: "/find-a-ride", label: "Find", icon: Search },
-            { href: "/offer-a-ride", label: "Offer", icon: Bike, emphasize: true },
-            { href: "/dashboard/my-rides", label: "My Rides", icon: LayoutDashboard },
-            { href: "/dashboard/profile", label: "Profile", icon: User },
-          ]
-        : [
-            { href: "/", label: "Home", icon: Home },
-            { href: "/find-a-ride", label: "Find", icon: Search },
-            { href: "/offer-a-ride", label: "Offer", icon: Bike, emphasize: true },
-            { href: "/dashboard/my-trips", label: "My Trips", icon: LayoutDashboard },
-            { href: "/dashboard/profile", label: "Profile", icon: User },
-          ]
+      ? [
+          { href: "/find-a-ride", label: "Find", icon: Search },
+          { href: "/dashboard/my-trips", label: "My Trips", icon: ClipboardList },
+          { href: "/offer-a-ride", label: "Offer", icon: Bike, emphasize: true },
+          { href: "/dashboard/my-rides", label: "My Rides", icon: Car },
+          { href: "/dashboard/profile", label: "Profile", icon: User },
+        ]
       : [
           { href: "/", label: "Home", icon: Home },
           { href: "/find-a-ride", label: "Find", icon: Search },

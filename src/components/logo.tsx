@@ -1,3 +1,7 @@
+/**
+ * A rider on a two-wheeler, head turned back over their shoulder — checking on
+ * the passenger behind them. The literal image behind the "Backseat" name.
+ */
 export function LogoMark({ className = "" }: { className?: string }) {
   return (
     <svg
@@ -7,17 +11,23 @@ export function LogoMark({ className = "" }: { className?: string }) {
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
     >
-      <path
-        d="M3 30C10 30 10 20 17 20C24 20 24 10 31 10"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeDasharray="0.5 7"
-      />
-      <path
-        d="M31 16C34.3 16 37 13.3 37 10C37 7.5 35.3 6 33.3 6C31.8 6 31 7 31 7C31 7 30.2 6 28.7 6C26.7 6 25 7.5 25 10C25 13.3 27.7 16 31 16Z"
-        fill="currentColor"
-      />
+      <g stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+        {/* wheels */}
+        <circle cx="10" cy="30" r="6" />
+        <circle cx="30" cy="30" r="6" />
+        {/* frame */}
+        <line x1="17" y1="18" x2="10" y2="30" />
+        <line x1="17" y1="18" x2="30" y2="30" />
+        <line x1="17" y1="18" x2="27" y2="14" />
+        <line x1="27" y1="14" x2="30" y2="30" />
+        <line x1="15" y1="17.5" x2="19" y2="17.5" />
+        {/* rider: torso leaning forward, arm to the handlebar, leg to the pedal */}
+        <line x1="17" y1="17" x2="15" y2="8" />
+        <line x1="15.5" y1="10" x2="26" y2="14" />
+        <line x1="17" y1="17" x2="24" y2="26" />
+      </g>
+      {/* head, turned back over the shoulder */}
+      <circle cx="11.5" cy="6.5" r="3.1" fill="currentColor" />
     </svg>
   );
 }

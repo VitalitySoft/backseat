@@ -4,11 +4,19 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
+function defaultDeparture(): string {
+  const d = new Date(Date.now() + 30 * 60 * 1000);
+  d.setSeconds(0, 0);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export function OfferRideForm({ maxSeats }: { maxSeats: number }) {
   const router = useRouter();
   const [startLocation, setStartLocation] = useState("");
   const [destination, setDestination] = useState("");
   const [seatsAvailable, setSeatsAvailable] = useState(Math.min(1, maxSeats));
+  const [departureAt, setDepartureAt] = useState(defaultDeparture);
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +29,13 @@ export function OfferRideForm({ maxSeats }: { maxSeats: number }) {
     const res = await fetch("/api/rides", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ startLocation, destination, seatsAvailable, notes }),
+      body: JSON.stringify({
+        startLocation,
+        destination,
+        seatsAvailable,
+        departureAt: new Date(departureAt).toISOString(),
+        notes,
+      }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -33,6 +47,7 @@ export function OfferRideForm({ maxSeats }: { maxSeats: number }) {
     setStartLocation("");
     setDestination("");
     setNotes("");
+    setDepartureAt(defaultDeparture());
     setLoading(false);
     router.refresh();
   }
@@ -61,18 +76,32 @@ export function OfferRideForm({ maxSeats }: { maxSeats: number }) {
           />
         </div>
       </div>
-      <div>
-        <label className="mb-1.5 block text-sm font-medium text-text">Seats to share</label>
-        <input
-          required
-          type="number"
-          min={1}
-          max={maxSeats}
-          value={seatsAvailable}
-          onChange={(e) => setSeatsAvailable(Number(e.target.value))}
-          className="w-full rounded-xl border border-paper-line bg-white px-4 py-3 text-sm outline-none focus:border-marigold focus:ring-2 focus:ring-marigold/30"
-        />
-        <p className="mt-1 text-xs text-text-soft">Your vehicle has {maxSeats} spare seat(s) registered.</p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-text">Departure date &amp; time</label>
+          <input
+            required
+            type="datetime-local"
+            value={departureAt}
+            min={defaultDeparture()}
+            onChange={(e) => setDepartureAt(e.target.value)}
+            className="w-full rounded-xl border border-paper-line bg-white px-4 py-3 text-sm outline-none focus:border-marigold focus:ring-2 focus:ring-marigold/30"
+          />
+          <p className="mt-1 text-xs text-text-soft">Passengers can&apos;t join once this time has passed.</p>
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-text">Seats to share</label>
+          <input
+            required
+            type="number"
+            min={1}
+            max={maxSeats}
+            value={seatsAvailable}
+            onChange={(e) => setSeatsAvailable(Number(e.target.value))}
+            className="w-full rounded-xl border border-paper-line bg-white px-4 py-3 text-sm outline-none focus:border-marigold focus:ring-2 focus:ring-marigold/30"
+          />
+          <p className="mt-1 text-xs text-text-soft">Your vehicle has {maxSeats} spare seat(s) registered.</p>
+        </div>
       </div>
       <div>
         <label className="mb-1.5 block text-sm font-medium text-text">Notes for passengers (optional)</label>
@@ -81,7 +110,7 @@ export function OfferRideForm({ maxSeats }: { maxSeats: number }) {
           onChange={(e) => setNotes(e.target.value)}
           rows={2}
           maxLength={240}
-          placeholder="Leaving around 9am, happy to wait a few minutes."
+          placeholder="Meeting point details, luggage space, anything helpful."
           className="w-full rounded-xl border border-paper-line bg-white px-4 py-3 text-sm outline-none focus:border-marigold focus:ring-2 focus:ring-marigold/30"
         />
       </div>
