@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Bell, CheckCheck } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -9,6 +10,7 @@ interface NotificationItem {
   type: string;
   title: string;
   body: string;
+  link: string | null;
   isRead: boolean;
   createdAt: string;
 }
@@ -92,26 +94,43 @@ export function NotificationBell() {
             {notifications.length === 0 && (
               <p className="px-4 py-8 text-center text-sm text-text-soft">No notifications yet.</p>
             )}
-            {notifications.map((n) => (
-              <button
-                key={n.id}
-                onClick={() => markOneRead(n.id)}
-                className={`block w-full border-b border-paper-line px-4 py-3 text-left last:border-b-0 hover:bg-paper-dim/60 ${
-                  n.isRead ? "" : "bg-marigold-pale/30"
-                }`}
-              >
+            {notifications.map((n) => {
+              const content = (
                 <div className="flex items-start gap-2">
                   {!n.isRead && <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-marigold-deep" />}
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-ink">{n.title}</p>
                     <p className="mt-0.5 text-xs text-text-soft">{n.body}</p>
-                    <p className="mt-1 text-[10px] text-text-soft/70">
-                      {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
-                    </p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <p className="text-[10px] text-text-soft/70">
+                        {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                      </p>
+                      {n.link && <p className="text-[10px] font-semibold text-marigold-deep">Tap to open →</p>}
+                    </div>
                   </div>
                 </div>
-              </button>
-            ))}
+              );
+              const itemClass = `block w-full border-b border-paper-line px-4 py-3 text-left last:border-b-0 hover:bg-paper-dim/60 ${
+                n.isRead ? "" : "bg-marigold-pale/30"
+              }`;
+              return n.link ? (
+                <Link
+                  key={n.id}
+                  href={n.link}
+                  onClick={() => {
+                    if (!n.isRead) markOneRead(n.id);
+                    setOpen(false);
+                  }}
+                  className={itemClass}
+                >
+                  {content}
+                </Link>
+              ) : (
+                <button key={n.id} onClick={() => markOneRead(n.id)} className={itemClass}>
+                  {content}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

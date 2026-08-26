@@ -42,6 +42,7 @@ export async function POST(req: Request) {
         type: "DONATION_COMPLETED",
         title: "Thank you for your donation",
         body: `Your donation of ₹${donation.amount.toLocaleString("en-IN")} was received. Receipt: ${donation.donationRef}.`,
+        link: `/donate/receipt/${donation.id}`,
       },
     });
   }
@@ -54,6 +55,7 @@ export async function POST(req: Request) {
           type: "DONATION_COMPLETED",
           title: "A donation came through your QR",
           body: `Someone you gave a ride to donated ₹${donation.amount.toLocaleString("en-IN")} to charity.`,
+          link: "/dashboard/donations",
         },
       });
     }

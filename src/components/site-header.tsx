@@ -17,11 +17,12 @@ const PUBLIC_LINKS = [
   { href: "/about", label: "About Us" },
 ];
 
-function memberLinks(user: NavUser) {
+function memberLinks() {
   return [
     { href: "/find-a-ride", label: "Find a Ride" },
     { href: "/offer-a-ride", label: "Offer a Ride" },
-    { href: user.isRider ? "/dashboard/my-rides" : "/dashboard/my-trips", label: user.isRider ? "My Rides" : "My Trips" },
+    { href: "/dashboard/my-trips", label: "My Trips" },
+    { href: "/dashboard/my-rides", label: "My Rides" },
     { href: "/top-contributors", label: "Top Contributors" },
   ];
 }
@@ -33,7 +34,7 @@ export function SiteHeader({ user }: { user: NavUser | null }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const isAdmin = user?.role === "ADMIN";
-  const navLinks = !user ? PUBLIC_LINKS : isAdmin ? [] : memberLinks(user);
+  const navLinks = !user ? PUBLIC_LINKS : isAdmin ? [] : memberLinks();
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -117,6 +118,9 @@ export function SiteHeader({ user }: { user: NavUser | null }) {
                         <Link href="/dashboard/donations" className="block px-4 py-2.5 text-sm text-text hover:bg-paper-dim">
                           Donations
                         </Link>
+                        <Link href="/dashboard/payments" className="block px-4 py-2.5 text-sm text-text hover:bg-paper-dim">
+                          Payments
+                        </Link>
                         <Link href="/dashboard/impact" className="block px-4 py-2.5 text-sm text-text hover:bg-paper-dim">
                           Impact
                         </Link>
@@ -195,6 +199,13 @@ export function SiteHeader({ user }: { user: NavUser | null }) {
                   className="rounded-lg px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim"
                 >
                   Donations
+                </Link>
+                <Link
+                  href="/dashboard/payments"
+                  onClick={() => setOpen(false)}
+                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim"
+                >
+                  Payments
                 </Link>
                 <Link
                   href="/dashboard/impact"

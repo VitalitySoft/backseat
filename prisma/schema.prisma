@@ -33,6 +33,7 @@ model User {
   blocksAgainst  Block[]        @relation("BlocksAgainst")
   notifications  Notification[]
   auditLogs      AuditLog[]
+  messagesSent   Message[]
 }
 
 // vehicleType: TWO_WHEELER | FOUR_WHEELER
@@ -94,6 +95,7 @@ model RideOffer {
   seatsAvailable Int
   startLocation  String
   destination    String
+  departureAt    DateTime?
   status         String   @default("ACTIVE")
   notes          String?
   createdAt      DateTime @default(now())
@@ -113,6 +115,19 @@ model RideJoin {
   createdAt   DateTime  @default(now())
 
   donations Donation[]
+  messages  Message[]
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  rideJoinId String
+  rideJoin   RideJoin @relation(fields: [rideJoinId], references: [id])
+  senderId   String
+  sender     User     @relation(fields: [senderId], references: [id])
+  body       String
+  createdAt  DateTime @default(now())
+
+  @@index([rideJoinId])
 }
 
 // status: PENDING | SUCCESS | FAILED | REFUNDED
@@ -172,6 +187,7 @@ model Notification {
   type      String
   title     String
   body      String
+  link      String?
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 }

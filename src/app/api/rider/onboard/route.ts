@@ -63,6 +63,7 @@ export async function POST(req: Request) {
         type: "VEHICLE_REGISTERED",
         title: "New vehicle registered",
         body: `${user.name} registered a ${parsed.data.vehicleType === "TWO_WHEELER" ? "two-wheeler" : "four-wheeler"} (${parsed.data.vehicleMake} ${parsed.data.vehicleModel}) — pending verification.`,
+        link: "/admin/verification",
       })),
     });
 

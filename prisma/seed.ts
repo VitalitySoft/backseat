@@ -14,6 +14,13 @@ function daysAgo(n: number): Date {
   return d;
 }
 
+function hoursFromNow(n: number): Date {
+  const d = new Date();
+  d.setHours(d.getHours() + n);
+  d.setMinutes(0, 0, 0);
+  return d;
+}
+
 async function main() {
   console.log("Seeding database...");
 
@@ -187,8 +194,10 @@ async function main() {
 
   // ---- Ride offers + joins (so dashboards/stats have real "people helped" numbers) ----
   const rideOffers = [];
+  let offerIdx = 0;
   for (const r of riderRecords) {
     if (!r.user.riderProfile) continue;
+    offerIdx += 1;
     const offer = await prisma.rideOffer.create({
       data: {
         riderId: r.user.riderProfile.id,
@@ -196,6 +205,7 @@ async function main() {
         seatsAvailable: r.seats,
         startLocation: r.route[0],
         destination: r.route[1],
+        departureAt: hoursFromNow(offerIdx * 7 + 3),
         status: "ACTIVE",
       },
     });
@@ -203,19 +213,29 @@ async function main() {
   }
 
   let joinSeq = 0;
+  // Completed joins per rider, so a couple of donations below can be linked to a
+  // real ride instead of floating free — that's what lets "X donated" show up
+  // on a specific My Rides / My Trips card instead of only in the leaderboard total.
+  const completedJoinsByRider = new Map<string, { joinId: string; passengerId: string }[]>();
   for (const offer of rideOffers) {
     const joinCount = 2 + (joinSeq % 3);
     for (let i = 0; i < joinCount; i++) {
       joinSeq += 1;
       const passenger = passengers[joinSeq % passengers.length];
-      await prisma.rideJoin.create({
+      const status = i === 0 ? "REQUESTED" : "COMPLETED";
+      const join = await prisma.rideJoin.create({
         data: {
           rideOfferId: offer.id,
           passengerId: passenger.id,
-          status: i === 0 ? "REQUESTED" : "COMPLETED",
+          status,
           createdAt: daysAgo(Math.floor(Math.random() * 90)),
         },
       });
+      if (status === "COMPLETED") {
+        const list = completedJoinsByRider.get(offer.riderId) ?? [];
+        list.push({ joinId: join.id, passengerId: passenger.id });
+        completedJoinsByRider.set(offer.riderId, list);
+      }
     }
   }
 
@@ -223,20 +243,29 @@ async function main() {
   let seq = 0;
   for (const r of riderRecords) {
     if (!r.user.riderProfile) continue;
+    const riderId = r.user.riderProfile.id;
     let remaining = r.target;
+    const linkableJoins = [...(completedJoinsByRider.get(riderId) ?? [])];
+
     while (remaining > 200) {
       const amount = Math.min(remaining, Math.round((150 + Math.random() * 1500) / 10) * 10);
       remaining -= amount;
       seq += 1;
-      const passenger = passengers[seq % passengers.length];
+      // Prefer tying a donation to one of this rider's own completed rides — and to
+      // the same passenger who actually took that ride — for the first couple of gifts.
+      const linkedJoin = linkableJoins.pop();
+      const passenger = linkedJoin
+        ? passengers.find((p) => p.id === linkedJoin.passengerId)!
+        : passengers[seq % passengers.length];
       const campaign = seq % 2 === 0 ? campaignEducation : campaignMedical;
       const createdAt = daysAgo(Math.floor(Math.random() * 150));
       await prisma.donation.create({
         data: {
           donationRef: generateDonationRef(),
           amount,
-          riderId: r.user.riderProfile.id,
+          riderId,
           passengerId: passenger.id,
+          rideJoinId: linkedJoin?.joinId,
           charityId: charity.id,
           campaignId: campaign.id,
           status: "SUCCESS",

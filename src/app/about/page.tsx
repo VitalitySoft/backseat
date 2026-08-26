@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { HeartHandshake, Compass, Users, ShieldCheck } from "lucide-react";
 
 export const metadata = { title: "About Us — Backseat" };
@@ -42,6 +43,11 @@ export default function AboutPage() {
           &ldquo;If you&apos;re already going somewhere, take someone along.&rdquo;
         </p>
         <p className="mt-2 text-sm text-text-soft">That&apos;s the whole idea. Everything else is just making it safe and simple.</p>
+      </div>
+
+      <div className="mt-10 flex flex-col items-center justify-center gap-2">
+        <p className="text-center text-xs text-text-soft">Ideology, implemented and maintained by</p>
+        <Image src="/vitalitysoft-logo.png" alt="VitalitySoft" width={1482} height={346} className="h-10 w-auto" />
       </div>
     </div>
   );

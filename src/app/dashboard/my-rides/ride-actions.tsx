@@ -8,34 +8,43 @@ import { QrDisplay } from "@/app/dashboard/qr/qr-display";
 export function JoinRequestActions({ rideId, joinId }: { rideId: string; joinId: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   async function updateStatus(status: "ACCEPTED" | "DECLINED" | "COMPLETED") {
     setLoading(status);
-    await fetch(`/api/rides/${rideId}/joins/${joinId}`, {
+    setError(null);
+    const res = await fetch(`/api/rides/${rideId}/joins/${joinId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
     });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "Something went wrong");
+    }
     setLoading(null);
     router.refresh();
   }
 
   return (
-    <div className="flex gap-2">
-      <button
-        onClick={() => updateStatus("ACCEPTED")}
-        disabled={loading !== null}
-        className="flex items-center gap-1 rounded-full bg-banyan-pale px-3 py-1.5 text-xs font-semibold text-banyan-deep hover:bg-banyan hover:text-white"
-      >
-        <Check className="h-3.5 w-3.5" /> Accept
-      </button>
-      <button
-        onClick={() => updateStatus("DECLINED")}
-        disabled={loading !== null}
-        className="flex items-center gap-1 rounded-full bg-rose-pale px-3 py-1.5 text-xs font-semibold text-rose-deep hover:bg-rose-deep hover:text-white"
-      >
-        <X className="h-3.5 w-3.5" /> Decline
-      </button>
+    <div>
+      <div className="flex gap-2">
+        <button
+          onClick={() => updateStatus("ACCEPTED")}
+          disabled={loading !== null}
+          className="flex items-center gap-1 rounded-full bg-banyan-pale px-3 py-1.5 text-xs font-semibold text-banyan-deep hover:bg-banyan hover:text-white disabled:opacity-50"
+        >
+          <Check className="h-3.5 w-3.5" /> Accept
+        </button>
+        <button
+          onClick={() => updateStatus("DECLINED")}
+          disabled={loading !== null}
+          className="flex items-center gap-1 rounded-full bg-rose-pale px-3 py-1.5 text-xs font-semibold text-rose-deep hover:bg-rose-deep hover:text-white disabled:opacity-50"
+        >
+          <X className="h-3.5 w-3.5" /> Decline
+        </button>
+      </div>
+      {error && <p className="mt-1.5 text-[11px] text-rose-deep">{error}</p>}
     </div>
   );
 }
