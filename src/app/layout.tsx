@@ -4,6 +4,7 @@ import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
+import { ChatbotWidget } from "@/components/chatbot-widget";
 import { getCurrentUser } from "@/lib/auth";
 import type { NavUser } from "@/components/nav-types";
 
@@ -52,6 +53,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <main className="flex-1 pb-16 md:pb-0">{children}</main>
         <SiteFooter />
         <MobileBottomNav user={navUser} />
+        <ChatbotWidget />
       </body>
     </html>
   );

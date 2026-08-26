@@ -31,12 +31,32 @@ const HOW_IT_WORKS = [
   },
 ];
 
+const EMPTY_STATS = {
+  totalDonated: 0,
+  totalDonations: 0,
+  totalRides: 0,
+  peopleHelped: 0,
+  activeRiders: 0,
+  monthlyContributors: 0,
+};
+
+const EMPTY_LEADERBOARD = [
+  {
+    riderId: "local-preview",
+    displayName: "Start the community",
+    totalDonated: 0,
+    donationCount: 0,
+    vehicleType: "TWO_WHEELER",
+    avatarInitial: "B",
+  },
+];
+
 export default async function HomePage() {
   const [stats, leaderboard, lifetimeContributors] = await Promise.all([
     getPlatformStats(),
     getLeaderboard(5),
     getLifetimeContributorCount(),
-  ]);
+  ]).catch(() => [EMPTY_STATS, EMPTY_LEADERBOARD, 0] as const);
 
   return (
     <div>
