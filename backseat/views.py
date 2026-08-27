@@ -266,8 +266,7 @@ def admin_action(request, kind, item_id):
 
 def api_me(request):
     if not request.user.is_authenticated: return JsonResponse({"user": None})
-    p = profile_for(request.user)
-    return JsonResponse({"user": {"id": p.id, "email": request.user.email, "name": request.user.get_full_name(), "role": p.role, "isBlocked": p.is_blocked}})
+    return JsonResponse({"user": user_payload(profile_for(request.user))})
 
 def api_rides(request):
     if request.method == "POST":
@@ -473,15 +472,51 @@ def api_sos(request):
 
 @csrf_exempt
 def api_chatbot(request):
-    question = (body_json(request).get("message") or "").lower()
-    if "donat" in question: reply = "Donations are always voluntary and go to registered charity partners."
-    elif "ride" in question: reply = "Use Find a Ride to request an active shared seat, or Offer a Ride to publish your spare seat."
-    elif "safe" in question: reply = "Use verified profiles, ride statuses, reports, blocks, and SOS if something feels unsafe."
-    else: reply = "Backseat lets riders share seats for free while passengers may optionally donate to charity."
-    return JsonResponse({"reply": reply})
+    data = body_json(request)
+    messages_in = data.get("messages") or [{"role": "user", "content": data.get("message", "")}]
+    question = next((m.get("content", "") for m in reversed(messages_in) if m.get("role") == "user"), "").lower()
+    topics = [
+        (["find", "search", "passenger", "join", "book", "available rides"], "You can search available rides by pickup, destination, date, and seats. Open a ride, review the rider details, then send a join request. The rider can accept or decline the request from their dashboard.", [{"label": "Find a Ride", "href": "/find-a-ride"}]),
+        (["offer", "driver", "rider", "publish", "vehicle", "seat", "offer a ride"], "To offer a ride, create an account, add your vehicle details, and publish your route with available seats. Backseat rides are free; riders do not set fares.", [{"label": "Offer a Ride", "href": "/offer-a-ride"}, {"label": "Become a Rider", "href": "/become-a-rider"}]),
+        (["donate", "donation", "upi", "charity", "payment", "receipt"], "Donations are voluntary and chosen by the passenger after the ride. The current demo flow uses a UPI deep link and simulated confirmation, so real payment gateway credentials should be added before production use.", [{"label": "Charity Impact", "href": "/charity-impact"}]),
+        (["safe", "safety", "sos", "report", "block", "trust"], "Backseat includes rider profiles, reporting, blocking, SOS access, and admin review workflows. For a safe trip, review the rider details, share your trip, and report any suspicious behavior.", [{"label": "Safety", "href": "/safety"}, {"label": "Community Guidelines", "href": "/community-guidelines"}]),
+        (["qr", "code", "scan", "rider profile"], "Verified riders can use a charity QR page from their dashboard. Passengers can scan the rider QR to open the donation flow tied to that rider.", [{"label": "Dashboard QR", "href": "/dashboard/qr"}]),
+        (["login", "register", "account", "password", "profile"], "Create an account from Register, then use Login to access your dashboard. From the dashboard you can manage profile details, vehicle information, rides, trips, and donations.", [{"label": "Login", "href": "/login"}, {"label": "Register", "href": "/register"}]),
+        (["admin", "approve", "verify", "fraud", "dashboard", "manage"], "Admins can review users, riders, rides, donations, reports, fraud signals, charities, campaigns, audit logs, and leaderboard visibility from the admin portal.", [{"label": "Admin Portal", "href": "/admin"}]),
+        (["fare", "price", "charge", "cost", "free"], "Backseat rides are not fare-based. A rider offers an empty seat for free, and a passenger may optionally donate any amount to charity after the ride.", [{"label": "How It Works", "href": "/how-it-works"}]),
+    ]
+    best = max(topics, key=lambda t: sum(1 for keyword in t[0] if keyword in question), default=None)
+    if not question.strip() or not best or sum(1 for keyword in best[0] if keyword in question) == 0:
+        return JsonResponse({"answer": 'I can help with finding rides, offering rides, rider QR codes, donations, safety, accounts, and admin workflows. Try asking something like "How do I offer a ride?" or "How do donations work?"', "links": []})
+    return JsonResponse({"answer": best[1], "links": best[2]})
 
 @csrf_exempt
 @admin_required
 def api_admin_update(request, kind, item_id):
-    request.POST = body_json(request)
-    return admin_action(request, kind, item_id)
+    data = body_json(request)
+    if kind == "user":
+        item = get_object_or_404(UserProfile, id=item_id); item.is_blocked = bool(data.get("isBlocked", not item.is_blocked)); item.save(update_fields=["is_blocked"])
+    elif kind == "rider":
+        item = get_object_or_404(RiderProfile, id=item_id); item.is_vehicle_verified = bool(data.get("isVehicleVerified", not item.is_vehicle_verified)); item.hidden_from_leaderboard = bool(data.get("hiddenFromLeaderboard", item.hidden_from_leaderboard)); item.save()
+    elif kind == "ride":
+        item = get_object_or_404(RideOffer, id=item_id); item.status = data.get("status", item.status); item.save(update_fields=["status"])
+    elif kind == "donation":
+        item = get_object_or_404(Donation, id=item_id); item.status = data.get("status", item.status); item.save(update_fields=["status"])
+    elif kind == "report":
+        item = get_object_or_404(Report, id=item_id); item.status = data.get("status", item.status); item.save(update_fields=["status"])
+    elif kind == "charity":
+        item = get_object_or_404(Charity, id=item_id)
+        for field in ["name", "registration_number", "description", "beneficiary_upi_vpa", "beneficiary_name"]:
+            if field in data: setattr(item, field, data[field])
+        if "isActive" in data: item.is_active = bool(data["isActive"])
+        item.save()
+    elif kind == "campaign":
+        item = get_object_or_404(Campaign, id=item_id)
+        for field in ["name", "description", "amount_distributed", "beneficiaries_supported", "goal_amount"]:
+            if field in data: setattr(item, field, data[field])
+        if "isActive" in data: item.is_active = bool(data["isActive"])
+        item.save()
+    else:
+        return json_error("Unknown admin action", 404)
+    audit(request, f"Admin API updated {kind}", kind, item_id)
+    return JsonResponse({"ok": True})

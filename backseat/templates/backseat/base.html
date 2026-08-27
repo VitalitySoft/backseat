@@ -21,6 +21,50 @@
   </header>
   {% for message in messages %}<div class="mx-auto mt-3 max-w-6xl rounded-xl border border-marigold bg-marigold-pale px-4 py-3 text-sm text-ink">{{ message }}</div>{% endfor %}
   <main>{% block content %}{% endblock %}</main>
+  <div id="backseat-chatbot" class="fixed bottom-20 right-4 z-50 md:bottom-6 md:right-6">
+    <section id="chatbot-panel" class="mb-3 hidden h-[520px] max-h-[calc(100vh-7rem)] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-2xl border border-paper-line bg-white shadow-2xl shadow-ink/15">
+      <div class="flex items-center justify-between bg-ink px-4 py-3 text-on-ink">
+        <div class="flex items-center gap-2"><span class="flex h-9 w-9 items-center justify-center rounded-full bg-marigold text-ink">B</span><div><h2 class="text-sm font-bold">Backseat Assistant</h2><p class="text-xs text-on-ink-soft">Answers on the fly</p></div></div>
+        <button id="chatbot-close" type="button" class="rounded-full p-2 text-on-ink-soft hover:bg-white/10 hover:text-on-ink" aria-label="Close chat">x</button>
+      </div>
+      <div id="chatbot-messages" class="flex-1 space-y-3 overflow-y-auto bg-paper px-4 py-4">
+        <div class="flex justify-start"><div class="max-w-[82%] rounded-2xl border border-paper-line bg-white px-4 py-3 text-sm leading-relaxed text-text">Hi, I can answer questions about Backseat rides, donations, rider QR codes, safety, and account setup.</div></div>
+      </div>
+      <div class="border-t border-paper-line bg-white p-3">
+        <div class="mb-2 flex gap-2 overflow-x-auto">
+          <button type="button" data-suggestion="How do I offer a ride?" class="shrink-0 rounded-full border border-paper-line px-3 py-1.5 text-xs font-semibold text-text-soft hover:border-marigold hover:text-ink">How do I offer a ride?</button>
+          <button type="button" data-suggestion="How do donations work?" class="shrink-0 rounded-full border border-paper-line px-3 py-1.5 text-xs font-semibold text-text-soft hover:border-marigold hover:text-ink">How do donations work?</button>
+          <button type="button" data-suggestion="How can I find a ride?" class="shrink-0 rounded-full border border-paper-line px-3 py-1.5 text-xs font-semibold text-text-soft hover:border-marigold hover:text-ink">How can I find a ride?</button>
+        </div>
+        <form id="chatbot-form" class="flex items-center gap-2">
+          <input id="chatbot-input" placeholder="Ask about Backseat" class="min-w-0 flex-1 rounded-full border border-paper-line bg-paper px-4 py-2.5 text-sm outline-none focus:border-marigold">
+          <button type="submit" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink text-on-ink" aria-label="Send message">></button>
+        </form>
+      </div>
+    </section>
+    <button id="chatbot-toggle" type="button" class="flex h-14 w-14 items-center justify-center rounded-full bg-ink text-on-ink shadow-xl shadow-ink/20 transition-transform hover:scale-105" aria-label="Open chat">?</button>
+  </div>
   <footer class="hidden border-t border-paper-line bg-ink text-on-ink-soft md:block"><div class="mx-auto max-w-6xl px-6 py-14"><div class="grid grid-cols-2 gap-10 md:grid-cols-6"><div class="col-span-2"><a class="inline-flex items-center gap-2 text-on-ink" href="{% url 'home' %}"><span class="flex h-9 w-9 items-center justify-center rounded-full bg-on-ink font-display text-lg text-marigold">B</span><span class="font-display text-xl font-semibold">Backseat</span></a><p class="mt-4 max-w-xs text-sm leading-relaxed text-on-ink-soft">Every ride offered here is free. Every donation is a choice. Backseat never sets a fare.</p></div><div><p class="mb-3 text-xs font-semibold uppercase tracking-wide text-on-ink-soft/70">Platform</p><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'find_a_ride' %}">Find a Ride</a><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'offer_a_ride' %}">Offer a Ride</a><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'how_it_works' %}">How It Works</a><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'top_contributors' %}">Top Contributors</a></div><div><p class="mb-3 text-xs font-semibold uppercase tracking-wide text-on-ink-soft/70">Charity</p><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'charity_impact' %}">Where Your Donation Goes</a><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'about' %}">About Us</a></div><div><p class="mb-3 text-xs font-semibold uppercase tracking-wide text-on-ink-soft/70">Trust & Safety</p><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'safety' %}">Safety Centre</a><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'community_guidelines' %}">Community Guidelines</a></div><div><p class="mb-3 text-xs font-semibold uppercase tracking-wide text-on-ink-soft/70">Legal</p><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'terms' %}">Terms of Use</a><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'privacy' %}">Privacy Policy</a><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'disclaimers' %}">Legal & Compliance</a></div></div><div class="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-on-ink-soft/70 md:flex-row md:items-center md:justify-between"><p>© Backseat. Not a transportation or fare-collection service.</p><p>Donations are collected on behalf of registered charity partners.</p></div></div></footer>
+  <script>
+    (() => {
+      const panel = document.getElementById("chatbot-panel"), toggle = document.getElementById("chatbot-toggle"), close = document.getElementById("chatbot-close"), form = document.getElementById("chatbot-form"), input = document.getElementById("chatbot-input"), messages = document.getElementById("chatbot-messages");
+      const history = [{role: "assistant", content: "Hi, I can answer questions about Backseat rides, donations, rider QR codes, safety, and account setup."}];
+      function bubble(role, text, links) {
+        const row = document.createElement("div"); row.className = "flex " + (role === "user" ? "justify-end" : "justify-start");
+        const box = document.createElement("div"); box.className = "max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-relaxed " + (role === "user" ? "bg-ink text-on-ink" : "border border-paper-line bg-white text-text"); box.textContent = text;
+        if (links && links.length) { const wrap = document.createElement("div"); wrap.className = "mt-3 flex flex-wrap gap-2"; links.forEach((link) => { const a = document.createElement("a"); a.href = link.href; a.textContent = link.label; a.className = "rounded-full bg-marigold-pale px-3 py-1 text-xs font-semibold text-ink hover:bg-marigold"; wrap.appendChild(a); }); box.appendChild(wrap); }
+        row.appendChild(box); messages.appendChild(row); messages.scrollTop = messages.scrollHeight;
+      }
+      async function send(text) {
+        const content = text.trim(); if (!content) return; history.push({role: "user", content}); bubble("user", content); input.value = "";
+        const response = await fetch("/api/chatbot", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({messages: history})});
+        const data = await response.json(); history.push({role: "assistant", content: data.answer || data.reply}); bubble("assistant", data.answer || data.reply || "I could not answer that yet.", data.links || []);
+      }
+      toggle.addEventListener("click", () => { panel.classList.toggle("hidden"); panel.classList.toggle("flex"); });
+      close.addEventListener("click", () => { panel.classList.add("hidden"); panel.classList.remove("flex"); });
+      form.addEventListener("submit", (event) => { event.preventDefault(); send(input.value); });
+      document.querySelectorAll("[data-suggestion]").forEach((button) => button.addEventListener("click", () => send(button.dataset.suggestion)));
+    })();
+  </script>
 </body>
 </html>
