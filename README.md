@@ -1,41 +1,41 @@
-# Backseat
+# Backseat Python
 
-A charity ride-sharing platform. If you're already travelling alone, offer your spare seat to
-someone going the same way — for free. If they'd like to, they can support a registered charity
-with a voluntary donation afterwards. Riders never set a fare; donation amounts are chosen
-entirely by the passenger.
+A Python/Flask conversion of the Backseat charity ride-sharing platform.
+
+Backseat lets riders offer spare seats for free and lets passengers optionally support a registered charity after the ride. This branch keeps the same product areas as the original Next.js app: public pages, authentication, rider profiles, ride offers and requests, QR-linked donation flow, receipts, user dashboard, and admin overview pages.
 
 ## Stack
 
-- **Framework:** Next.js (App Router) + TypeScript
-- **Styling:** Tailwind CSS v4, Framer Motion
-- **Database:** Prisma + SQLite (dev)
-- **Auth:** iron-session (encrypted cookie sessions)
-- **Charts:** Recharts · **QR:** qrcode.react
+- **Framework:** Flask + Jinja templates
+- **Language:** Python
+- **Database:** SQLAlchemy with PostgreSQL via `psycopg`
+- **Migrations:** Flask-Migrate / Alembic
+- **Auth:** Flask signed-cookie session with Werkzeug password hashing
+- **QR:** `qrcode[pil]`
+- **Styling:** Custom CSS in `backseat/static/styles.css`
 
 ## Getting started
 
 ```bash
-npm install
-cp .env.example .env      # then edit SESSION_SECRET etc.
-npx prisma migrate dev
-npm run db:seed
-npm run dev
+python -m venv .venv
+. .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+flask --app run.py init-db
+flask --app run.py run
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:5000](http://localhost:5000).
 
-### Seeded accounts (password `Demo@123` / admin `Admin@123`)
+## Seeded accounts
 
-| Role | Email |
-|---|---|
-| Admin | `admin@backseat.app` |
-| Demo rider | `demo.rider@backseat.app` |
-| Demo passenger | `demo.passenger@backseat.app` |
+| Role | Email | Password |
+|---|---|---|
+| Admin | `admin@backseat.app` | `Admin@123` |
+| Demo rider | `demo.rider@backseat.app` | `Demo@123` |
+| Demo passenger | `demo.passenger@backseat.app` | `Demo@123` |
 
 ## Notes
 
-- The donation payment step uses a UPI deep link with a **simulated** confirmation step in place
-  of a live payment gateway — swap in real gateway credentials before processing real money.
-- Legal/compliance copy (`/terms`, `/privacy`, `/disclaimers`) is a starting point and should be
-  reviewed by qualified counsel before a real launch.
+- The UPI donation step is still simulated and must be replaced with a real payment gateway before production use.
+- Legal, privacy, safety, and compliance copy remains starter material and should be reviewed before launch.
