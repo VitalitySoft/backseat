@@ -1,1 +1,13 @@
-{% extends "backseat/base.html" %}{% block content %}<section class="panel"><p class="eyebrow">Backseat</p><h1>{{ title }}</h1><p>{{ body }}</p></section>{% endblock %}
+{% extends "backseat/base.html" %}
+{% block content %}
+<section class="bg-paper py-16">
+  <div class="mx-auto max-w-3xl px-6">
+    <article class="rounded-3xl border border-paper-line bg-white p-8 shadow-sm fade-up">
+      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-marigold-deep">Backseat</p>
+      <h1 class="mt-3 font-display text-4xl text-ink">{{ title }}</h1>
+      <p class="mt-5 text-lg leading-relaxed text-text-soft">{{ body }}</p>
+      <div class="mt-8 rounded-2xl bg-banyan-pale px-5 py-4 text-sm leading-relaxed text-banyan-deep">Backseat keeps rides free and donation choices voluntary, with reporting, blocking, and admin review built into the platform.</div>
+    </article>
+  </div>
+</section>
+{% endblock %}

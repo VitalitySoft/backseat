@@ -1,1 +1,21 @@
-{% extends "backseat/base.html" %}{% block content %}<section class="panel narrow"><h1>Offer a ride</h1><form method="post" class="form">{% csrf_token %}<label>Vehicle type<select name="vehicle_type"><option>FOUR_WHEELER</option><option>TWO_WHEELER</option></select></label><label>Make<input name="vehicle_make" required></label><label>Model<input name="vehicle_model" required></label><label>Plate<input name="vehicle_plate" required></label><label>Seats<input type="number" name="seats_available" min="1" value="1"></label><label>Start<input name="start_location" required></label><label>Destination<input name="destination" required></label><label>Notes<textarea name="notes"></textarea></label><button class="button">Publish ride</button></form></section>{% endblock %}
+{% extends "backseat/base.html" %}
+{% block content %}
+<section class="mx-auto max-w-3xl px-6 py-16">
+  <div class="fade-up">
+    <h1 class="font-display text-3xl text-ink sm:text-4xl">Offer a Ride</h1>
+    <p class="mt-3 text-text-soft">Add your vehicle details once and publish your route with available seats. No fare or fee, ever.</p>
+  </div>
+  <div class="mt-8 rounded-3xl border border-paper-line bg-white p-6 shadow-sm sm:p-8 fade-up delay-1">
+    <h2 class="font-display text-xl text-ink">Publish a new ride</h2>
+    <form method="post" class="mt-5 grid gap-4">{% csrf_token %}
+      <div class="grid gap-4 sm:grid-cols-2"><label>Vehicle type<select name="vehicle_type"><option>FOUR_WHEELER</option><option>TWO_WHEELER</option></select></label><label>Seats<input type="number" name="seats_available" min="1" max="6" value="1"></label></div>
+      <div class="grid gap-4 sm:grid-cols-3"><label>Make<input name="vehicle_make" required></label><label>Model<input name="vehicle_model" required></label><label>Plate<input name="vehicle_plate" required></label></div>
+      <div class="grid gap-4 sm:grid-cols-2"><label>Start<input name="start_location" required></label><label>Destination<input name="destination" required></label></div>
+      <label>Departure time<input type="datetime-local" name="departure_at"></label>
+      <label>Notes<textarea name="notes" maxlength="240" placeholder="Pickup hints, route preference, or timing details"></textarea></label>
+      <div class="rounded-2xl bg-banyan-pale px-4 py-3 text-sm text-banyan-deep">Your ride is shared freely. Passengers may donate later by scanning your charity QR.</div>
+      <button class="rounded-full bg-ink px-6 py-3 text-sm font-semibold text-on-ink">Publish ride</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

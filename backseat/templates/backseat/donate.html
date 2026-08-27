@@ -1,1 +1,12 @@
-{% extends "backseat/base.html" %}{% block content %}<section class="panel narrow"><h1>Support {{ charity.name }}</h1><p>Donation for a ride shared by {{ rider.user_profile.user.get_full_name }}. Payment is simulated for demo use.</p><a href="{{ upi }}" class="button secondary">Open UPI app</a><form method="post" class="form">{% csrf_token %}<label>Amount<input type="number" name="amount" min="1" value="100"></label><label>Display name<input name="display_name" placeholder="Anonymous"></label><button class="button">Confirm donation</button></form></section>{% endblock %}
+{% extends "backseat/base.html" %}
+{% block content %}
+<section class="mx-auto max-w-2xl px-6 py-16">
+  <div class="rounded-3xl border border-paper-line bg-white p-6 shadow-xl sm:p-8 ticket-notch fade-up">
+    <p class="text-xs font-semibold uppercase tracking-[0.22em] text-marigold-deep">Voluntary donation</p>
+    <h1 class="mt-3 font-display text-3xl text-ink">Support {{ charity.name }}</h1>
+    <p class="mt-3 text-text-soft">Donation for a ride shared by {{ rider.user_profile.user.get_full_name }}. This is never a fare or required payment.</p>
+    <a href="{{ upi }}" class="mt-6 inline-flex rounded-full border border-paper-line bg-paper px-5 py-2.5 text-sm font-semibold text-ink">Open UPI app</a>
+    <form method="post" class="mt-6 grid gap-4">{% csrf_token %}<label>Amount<input type="number" name="amount" min="1" max="100000" value="100"></label><label>Display name<input name="display_name" placeholder="Anonymous"></label><button class="rounded-full bg-marigold px-6 py-3 text-sm font-semibold text-ink">Confirm donation</button></form>
+  </div>
+</section>
+{% endblock %}

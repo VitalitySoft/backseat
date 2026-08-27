@@ -1,1 +1,18 @@
-{% extends "backseat/base.html" %}{% block content %}<section class="panel narrow"><h1>Profile</h1><form method="post" class="form">{% csrf_token %}<label>Name<input name="name" value="{{ request.user.get_full_name }}"></label><label>Phone<input name="phone" value="{{ profile.phone|default:'' }}"></label><button class="button">Save</button></form></section>{% endblock %}
+{% extends "backseat/base.html" %}
+{% block content %}
+<section class="mx-auto max-w-3xl px-6 py-16">
+  <h1 class="font-display text-3xl text-ink">Profile</h1>
+  <p class="mt-2 text-text-soft">Keep your rider and passenger details clear for safer ride sharing.</p>
+  <div class="mt-8 grid gap-6 md:grid-cols-[1fr_18rem]">
+    <form method="post" class="rounded-3xl border border-paper-line bg-white p-6 shadow-sm">{% csrf_token %}
+      <div class="grid gap-4"><label>Name<input name="name" value="{{ request.user.get_full_name }}" required></label><label>Phone<input name="phone" value="{{ profile.phone|default:'' }}"></label><label>Email<input value="{{ request.user.email }}" disabled></label></div>
+      <button class="mt-6 rounded-full bg-ink px-6 py-3 text-sm font-semibold text-on-ink">Save profile</button>
+    </form>
+    <aside class="rounded-3xl border border-paper-line bg-paper-dim p-6">
+      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-marigold-deep">Account</p>
+      <p class="mt-3 font-display text-2xl text-ink">{{ profile.role }}</p>
+      <p class="mt-2 text-sm text-text-soft">{% if profile.email_verified %}Email verified{% else %}Email pending{% endif %} · {% if profile.phone_verified %}Phone verified{% else %}Phone pending{% endif %}</p>
+    </aside>
+  </div>
+</section>
+{% endblock %}

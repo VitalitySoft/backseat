@@ -1,1 +1,19 @@
-{% extends "backseat/base.html" %}{% block content %}<section class="panel"><h1>Charity impact</h1><p class="big">₹{{ total|floatformat:0 }}</p><p>Total successful donations recorded.</p></section><section class="grid">{% for d in donations %}<article><h3>{{ d.donor_display_name_snapshot|default:"Anonymous" }}</h3><p>₹{{ d.amount|floatformat:0 }} · {{ d.donation_ref }}</p></article>{% endfor %}</section>{% endblock %}
+{% extends "backseat/base.html" %}
+{% block content %}
+<section class="bg-paper py-16">
+  <div class="mx-auto max-w-4xl px-6">
+    <div class="text-center fade-up">
+      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-marigold-deep">Charity impact</p>
+      <h1 class="mt-3 font-display text-4xl text-ink">INR {{ total|floatformat:0 }}</h1>
+      <p class="mx-auto mt-3 max-w-xl text-text-soft">Total successful donations recorded through voluntary Backseat giving.</p>
+    </div>
+    <ol class="mt-10 space-y-3">
+      {% for d in donations %}
+        <li class="flex items-center gap-4 rounded-2xl border border-paper-line bg-white px-5 py-4 fade-up"><span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-marigold font-display text-sm text-ink">{{ forloop.counter }}</span><span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-sm font-semibold text-on-ink">{{ d.donor_display_name_snapshot|default:"A"|first }}</span><div class="min-w-0 flex-1"><p class="truncate font-medium text-ink">{{ d.donor_display_name_snapshot|default:"Anonymous" }}</p><p class="text-xs text-text-soft">{{ d.donation_ref }} · {{ d.charity.name }}</p></div><span class="font-display text-lg text-ink">INR {{ d.amount|floatformat:0 }}</span></li>
+      {% empty %}
+        <li class="rounded-2xl border border-dashed border-paper-line bg-white px-6 py-10 text-center text-text-soft">No donations yet.</li>
+      {% endfor %}
+    </ol>
+  </div>
+</section>
+{% endblock %}

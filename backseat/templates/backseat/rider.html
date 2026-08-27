@@ -1,1 +1,19 @@
-{% extends "backseat/base.html" %}{% block content %}<section class="panel"><h1>{{ rider.user_profile.user.get_full_name }}</h1><p>{{ rider.bio }}</p><p>{{ rider.vehicle_make }} {{ rider.vehicle_model }} · {{ rider.seats_available }} seats</p><img class="qr" src="{% url 'qr_png' rider.charity_code %}" alt="Donation QR"><p><a class="button" href="{% url 'donate' rider.charity_code %}">Donate to charity</a></p></section>{% endblock %}
+{% extends "backseat/base.html" %}
+{% block content %}
+<section class="mx-auto max-w-4xl px-6 py-16">
+  <div class="grid gap-8 md:grid-cols-[1fr_20rem]">
+    <div class="rounded-3xl border border-paper-line bg-white p-8 fade-up">
+      <span class="status-pill {% if rider.is_vehicle_verified %}status-active{% else %}status-wait{% endif %}">{% if rider.is_vehicle_verified %}Verified rider{% else %}Verification pending{% endif %}</span>
+      <h1 class="mt-4 font-display text-4xl text-ink">{{ rider.user_profile.user.get_full_name }}</h1>
+      <p class="mt-3 text-text-soft">{{ rider.bio|default:"A Backseat rider sharing spare seats for free." }}</p>
+      <div class="mt-6 grid gap-3 rounded-2xl bg-paper-dim p-5 text-sm text-text-soft sm:grid-cols-2"><p>{{ rider.vehicle_make }} {{ rider.vehicle_model }}</p><p>{{ rider.vehicle_plate }}</p><p>{{ rider.seats_available }} seat(s)</p><p>{% if rider.is_sharing_active %}Currently sharing{% else %}Not sharing right now{% endif %}</p></div>
+    </div>
+    <aside class="rounded-3xl border border-paper-line bg-white p-6 text-center fade-up delay-1 ticket-notch">
+      <img class="mx-auto h-48 w-48 rounded-2xl border border-paper-line bg-white p-3" src="{% url 'qr_png' rider.charity_code %}" alt="Donation QR">
+      <p class="mt-4 text-sm text-text-soft">Charity code</p>
+      <p class="font-display text-xl text-ink">{{ rider.charity_code }}</p>
+      <a class="mt-5 inline-flex rounded-full bg-marigold px-5 py-2.5 text-sm font-semibold text-ink" href="{% url 'donate' rider.charity_code %}">Donate to charity</a>
+    </aside>
+  </div>
+</section>
+{% endblock %}

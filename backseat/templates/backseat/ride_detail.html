@@ -1,1 +1,20 @@
-{% extends "backseat/base.html" %}{% block content %}<section class="panel"><h1>{{ ride.start_location }} to {{ ride.destination }}</h1><p>{{ ride.notes|default:"No notes provided." }}</p><p>Rider: <a href="{% url 'rider_profile' ride.rider.id %}">{{ ride.rider.user_profile.user.get_full_name }}</a></p><form method="post">{% csrf_token %}<button class="button">Request this ride</button></form></section>{% endblock %}
+{% extends "backseat/base.html" %}
+{% block content %}
+<section class="mx-auto max-w-3xl px-6 py-16">
+  <article class="ticket-shell ticket-notch fade-up">
+    <div class="ticket-main">
+      <span class="status-pill status-active">{{ ride.status }}</span>
+      <h1 class="mt-4 font-display text-3xl text-ink">{{ ride.start_location }} to {{ ride.destination }}</h1>
+      <p class="mt-3 text-text-soft">{{ ride.notes|default:"No notes provided." }}</p>
+      <div class="mt-5 grid gap-3 text-sm text-text-soft sm:grid-cols-3"><span>{{ ride.vehicle_type }}</span><span>{{ ride.seats_available }} seat(s)</span><span>{{ ride.departure_at|default:"Flexible timing" }}</span></div>
+      <div class="mt-6 rounded-2xl bg-banyan-pale px-4 py-3 text-sm text-banyan-deep">Backseat rides are free. Any donation after the ride is voluntary and goes to charity.</div>
+    </div>
+    <aside class="ticket-side">
+      <p class="text-xs uppercase tracking-wide text-text-soft">Rider</p>
+      <a class="mt-1 block font-display text-xl text-ink hover:text-marigold-deep" href="{% url 'rider_profile' ride.rider.id %}">{{ ride.rider.user_profile.user.get_full_name }}</a>
+      <p class="mt-2 text-sm text-text-soft">{{ ride.rider.vehicle_make }} {{ ride.rider.vehicle_model }}</p>
+      <form method="post" class="mt-6">{% csrf_token %}<button class="w-full rounded-full bg-marigold px-5 py-3 text-sm font-semibold text-ink">Request this ride</button></form>
+    </aside>
+  </article>
+</section>
+{% endblock %}

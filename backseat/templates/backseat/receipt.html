@@ -1,1 +1,11 @@
-{% extends "backseat/base.html" %}{% block content %}<section class="panel"><p class="eyebrow">Receipt</p><h1>{{ donation.donation_ref }}</h1><p>₹{{ donation.amount|floatformat:0 }} · {{ donation.status }} · {{ donation.payment_method }}</p><button class="button" onclick="window.print()">Print receipt</button></section>{% endblock %}
+{% extends "backseat/base.html" %}
+{% block content %}
+<section class="mx-auto max-w-2xl px-6 py-16">
+  <article class="rounded-3xl border border-paper-line bg-white p-8 shadow-xl ticket-perforation fade-up">
+    <p class="text-xs font-semibold uppercase tracking-[0.22em] text-marigold-deep">Receipt</p>
+    <h1 class="mt-3 font-display text-3xl text-ink">{{ donation.donation_ref }}</h1>
+    <div class="mt-6 grid gap-4 rounded-2xl bg-paper-dim p-5 text-sm text-text-soft"><p><b class="text-ink">Amount:</b> INR {{ donation.amount|floatformat:0 }}</p><p><b class="text-ink">Status:</b> {{ donation.status }}</p><p><b class="text-ink">Method:</b> {{ donation.payment_method }}</p><p><b class="text-ink">Charity:</b> {{ donation.charity.name }}</p></div>
+    <button class="mt-6 rounded-full bg-ink px-6 py-3 text-sm font-semibold text-on-ink" onclick="window.print()">Print receipt</button>
+  </article>
+</section>
+{% endblock %}
