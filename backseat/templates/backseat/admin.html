@@ -1,1 +1,45 @@
-{% extends "backseat/base.html" %}{% block content %}<section class="panel"><h1>Admin</h1><div class="grid four"><article><b>{{ stats.users }}</b><span>Users</span></article><article><b>{{ stats.riders }}</b><span>Riders</span></article><article><b>{{ stats.rides }}</b><span>Rides</span></article><article><b>{{ stats.donations }}</b><span>Donations</span></article></div></section><section class="panel"><h2>Users</h2><table><tr><th>Name</th><th>Email</th><th>Role</th></tr>{% for u in users %}<tr><td>{{ u.user.get_full_name }}</td><td>{{ u.user.email }}</td><td>{{ u.role }}</td></tr>{% endfor %}</table></section>{% endblock %}
+{% extends "backseat/base.html" %}
+{% block content %}
+<section class="bg-paper py-12">
+  <div class="mx-auto max-w-6xl px-4 md:px-6">
+    <div class="mb-8">
+      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-marigold-deep">Operations</p>
+      <h1 class="font-display text-4xl font-semibold text-ink">Admin Portal</h1>
+    </div>
+    <div class="grid gap-4 md:grid-cols-5">
+      <article class="rounded-2xl border border-paper-line bg-white p-5"><b class="font-display text-3xl text-ink">{{ stats.users }}</b><p class="text-sm text-text-soft">Users</p></article>
+      <article class="rounded-2xl border border-paper-line bg-white p-5"><b class="font-display text-3xl text-ink">{{ stats.riders }}</b><p class="text-sm text-text-soft">Riders</p></article>
+      <article class="rounded-2xl border border-paper-line bg-white p-5"><b class="font-display text-3xl text-ink">{{ stats.rides }}</b><p class="text-sm text-text-soft">Rides</p></article>
+      <article class="rounded-2xl border border-paper-line bg-white p-5"><b class="font-display text-3xl text-ink">{{ stats.donations }}</b><p class="text-sm text-text-soft">Donations</p></article>
+      <article class="rounded-2xl border border-paper-line bg-white p-5"><b class="font-display text-3xl text-ink">{{ stats.reports }}</b><p class="text-sm text-text-soft">Reports</p></article>
+    </div>
+
+    <div class="mt-8 grid gap-6">
+      <section class="rounded-2xl border border-paper-line bg-white p-6">
+        <h2 class="font-display text-2xl font-semibold text-ink">Users</h2>
+        <div class="mt-4 overflow-x-auto"><table class="w-full text-left text-sm"><tr class="border-b border-paper-line text-text-soft"><th class="py-3">Name</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr>{% for u in users %}<tr class="border-b border-paper-line"><td class="py-3">{{ u.user.get_full_name|default:u.user.username }}</td><td>{{ u.user.email }}</td><td>{{ u.role }}</td><td>{% if u.is_blocked %}Blocked{% else %}Active{% endif %}</td><td><form method="post" action="{% url 'admin_action' 'user' u.id %}">{% csrf_token %}<button class="rounded-full border border-paper-line px-3 py-1.5 text-xs font-semibold text-ink">{% if u.is_blocked %}Unblock{% else %}Block{% endif %}</button></form></td></tr>{% endfor %}</table></div>
+      </section>
+
+      <section class="rounded-2xl border border-paper-line bg-white p-6">
+        <h2 class="font-display text-2xl font-semibold text-ink">Rider Verification</h2>
+        <div class="mt-4 grid gap-3">{% for r in riders %}<div class="flex flex-col gap-3 rounded-xl bg-paper-dim p-4 md:flex-row md:items-center md:justify-between"><div><b class="text-ink">{{ r.user_profile.user.get_full_name|default:r.user_profile.user.email }}</b><p class="text-sm text-text-soft">{{ r.vehicle_make }} {{ r.vehicle_model }} · {{ r.vehicle_plate }} · {% if r.is_vehicle_verified %}Verified{% else %}Pending{% endif %}</p></div><form method="post" action="{% url 'admin_action' 'rider' r.id %}">{% csrf_token %}<button class="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-on-ink">Toggle verify</button></form></div>{% endfor %}</div>
+      </section>
+
+      <section class="rounded-2xl border border-paper-line bg-white p-6">
+        <h2 class="font-display text-2xl font-semibold text-ink">Rides</h2>
+        <div class="mt-4 grid gap-3">{% for ride in rides %}<div class="flex flex-col gap-3 rounded-xl bg-paper-dim p-4 md:flex-row md:items-center md:justify-between"><div><b class="text-ink">{{ ride.start_location }} to {{ ride.destination }}</b><p class="text-sm text-text-soft">{{ ride.rider.user_profile.user.get_full_name }} · {{ ride.status }}</p></div><form method="post" action="{% url 'admin_action' 'ride' ride.id %}" class="flex gap-2">{% csrf_token %}<button name="status" value="ACTIVE" class="rounded-full border border-paper-line bg-white px-3 py-1.5 text-xs font-semibold">Active</button><button name="status" value="COMPLETED" class="rounded-full bg-banyan px-3 py-1.5 text-xs font-semibold text-white">Complete</button><button name="status" value="CANCELLED" class="rounded-full bg-rose px-3 py-1.5 text-xs font-semibold text-white">Cancel</button></form></div>{% endfor %}</div>
+      </section>
+
+      <section class="rounded-2xl border border-paper-line bg-white p-6">
+        <h2 class="font-display text-2xl font-semibold text-ink">Donations</h2>
+        <div class="mt-4 overflow-x-auto"><table class="w-full text-left text-sm"><tr class="border-b border-paper-line text-text-soft"><th class="py-3">Ref</th><th>Amount</th><th>Charity</th><th>Status</th><th></th></tr>{% for d in donations %}<tr class="border-b border-paper-line"><td class="py-3">{{ d.donation_ref }}</td><td>INR {{ d.amount|floatformat:0 }}</td><td>{{ d.charity.name }}</td><td>{{ d.status }}</td><td><form method="post" action="{% url 'admin_action' 'donation' d.id %}">{% csrf_token %}<button name="status" value="SUCCESS" class="rounded-full bg-banyan px-3 py-1.5 text-xs font-semibold text-white">Mark success</button></form></td></tr>{% endfor %}</table></div>
+      </section>
+
+      <section class="rounded-2xl border border-paper-line bg-white p-6">
+        <h2 class="font-display text-2xl font-semibold text-ink">Reports</h2>
+        <div class="mt-4 grid gap-3">{% for report in reports %}<div class="flex flex-col gap-3 rounded-xl bg-paper-dim p-4 md:flex-row md:items-center md:justify-between"><div><b class="text-ink">{{ report.reason }}</b><p class="text-sm text-text-soft">{{ report.reporter.user.email }} reported {{ report.reported.user.email }} · {{ report.status }}</p></div><form method="post" action="{% url 'admin_action' 'report' report.id %}" class="flex gap-2">{% csrf_token %}<button name="status" value="REVIEWED" class="rounded-full border border-paper-line bg-white px-3 py-1.5 text-xs font-semibold">Reviewed</button><button name="status" value="RESOLVED" class="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-on-ink">Resolved</button></form></div>{% empty %}<p class="text-sm text-text-soft">No reports yet.</p>{% endfor %}</div>
+      </section>
+    </div>
+  </div>
+</section>
+{% endblock %}

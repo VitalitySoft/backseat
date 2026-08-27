@@ -11,7 +11,7 @@ Backseat lets riders offer spare seats for free and lets passengers optionally s
 - **Database:** Django ORM with PostgreSQL via `psycopg`
 - **Auth:** Django authentication and sessions
 - **QR:** `qrcode[pil]`
-- **Styling:** Custom CSS in `backseat/static/styles.css`
+- **Styling:** Tailwind utility classes with the original Backseat paper/ink/marigold theme, plus small static CSS helpers
 
 ## Getting started
 
@@ -19,13 +19,22 @@ Backseat lets riders offer spare seats for free and lets passengers optionally s
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env
+createdb backseat
+createuser backseat_app
+psql -d backseat -c "ALTER USER backseat_app WITH PASSWORD 'change-me';"
+copy .env.example .env
 python manage.py migrate --run-syncdb
 python manage.py seed_demo
 python manage.py runserver
 ```
 
 Open [http://localhost:8000](http://localhost:8000).
+
+The app requires PostgreSQL. `DATABASE_URL` in `.env` must point to your local PostgreSQL database, for example:
+
+```env
+DATABASE_URL="postgresql://backseat_app:change-me@localhost:5432/backseat"
+```
 
 ## Seeded accounts
 
