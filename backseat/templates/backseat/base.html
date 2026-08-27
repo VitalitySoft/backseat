@@ -5,48 +5,22 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ title|default:"Backseat" }}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: { colors: { ink: "#1e2749", "ink-deep": "#12172b", "ink-soft": "#2c3660", paper: "#fbf6ec", "paper-dim": "#f3ecdc", "paper-line": "#e3d9c2", marigold: "#e8a33d", "marigold-deep": "#c47f22", "marigold-pale": "#fbe6bf", rose: "#e2697d", "rose-deep": "#c14a5e", "rose-pale": "#f8dde2", banyan: "#3f7566", "banyan-deep": "#2c5548", "banyan-pale": "#dcece5", text: "#23283a", "text-soft": "#5b5f72", "on-ink": "#f6f1e4", "on-ink-soft": "#b9bfe0" }, fontFamily: { display: ["Fraunces", "Georgia", "serif"], body: ["Manrope", "ui-sans-serif", "system-ui", "sans-serif"] } } } };
+  </script>
   <link rel="stylesheet" href="{% static 'styles.css' %}">
 </head>
 <body>
-  <header class="site-header">
-    <div class="header-inner">
-      <a class="brand" href="{% url 'home' %}"><span class="brand-mark">B</span><span>Backseat</span></a>
-      <nav class="nav-links">
-        <a href="{% url 'find_a_ride' %}">Find a Ride</a>
-        <a href="{% url 'offer_a_ride' %}">Offer a Ride</a>
-        <a href="{% url 'how_it_works' %}">How It Works</a>
-        <a href="{% url 'charity_impact' %}">Charity Impact</a>
-        <a href="{% url 'top_contributors' %}">Top Contributors</a>
-        <a href="{% url 'about' %}">About Us</a>
-      </nav>
-      <div class="nav-actions">
-        {% if request.user.is_authenticated %}
-          <a href="{% url 'dashboard' %}">Dashboard</a>
-          {% if request.user.profile.role == "ADMIN" %}<a href="{% url 'admin_console' %}">Admin</a>{% endif %}
-          <form action="{% url 'logout' %}" method="post">{% csrf_token %}<button class="ghost">Log out</button></form>
-        {% else %}
-          <a href="{% url 'login' %}">Login</a>
-          <a class="button small" href="{% url 'register' %}">Get Started</a>
-        {% endif %}
-      </div>
+  <header class="sticky top-0 z-50 border-b border-paper-line bg-paper/90 backdrop-blur">
+    <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 md:px-6">
+      <a class="inline-flex items-center gap-2 text-ink" href="{% url 'home' %}"><span class="flex h-9 w-9 items-center justify-center rounded-full bg-ink font-display text-lg text-marigold">B</span><span class="font-display text-xl font-semibold">Backseat</span></a>
+      <nav class="hidden items-center gap-6 lg:flex"><a class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep" href="{% url 'find_a_ride' %}">Find a Ride</a><a class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep" href="{% url 'offer_a_ride' %}">Offer a Ride</a><a class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep" href="{% url 'how_it_works' %}">How It Works</a><a class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep" href="{% url 'charity_impact' %}">Charity Impact</a><a class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep" href="{% url 'top_contributors' %}">Top Contributors</a><a class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep" href="{% url 'about' %}">About Us</a></nav>
+      <div class="hidden items-center gap-3 lg:flex">{% if request.user.is_authenticated %}<a class="rounded-full border border-paper-line bg-white/60 px-4 py-2 text-sm font-semibold text-ink hover:border-marigold" href="{% url 'dashboard' %}">Dashboard</a>{% if request.user.profile.role == "ADMIN" %}<a class="text-sm font-medium text-text-soft hover:text-ink" href="{% url 'admin_console' %}">Admin</a>{% endif %}<form action="{% url 'logout' %}" method="post">{% csrf_token %}<button class="text-sm font-medium text-rose-deep hover:text-ink">Log out</button></form>{% else %}<a class="text-sm font-medium text-text-soft hover:text-ink" href="{% url 'login' %}">Login</a><a class="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-on-ink transition-transform hover:scale-[1.03]" href="{% url 'register' %}">Get Started</a>{% endif %}</div>
     </div>
   </header>
-  {% for message in messages %}<div class="flash">{{ message }}</div>{% endfor %}
+  {% for message in messages %}<div class="mx-auto mt-3 max-w-6xl rounded-xl border border-marigold bg-marigold-pale px-4 py-3 text-sm text-ink">{{ message }}</div>{% endfor %}
   <main>{% block content %}{% endblock %}</main>
-  <footer class="site-footer">
-    <div class="footer-inner">
-      <div class="footer-grid">
-        <div>
-          <a class="brand" href="{% url 'home' %}"><span class="brand-mark">B</span><span>Backseat</span></a>
-          <p>Every ride offered here is free. Every donation is a choice. Backseat never sets a fare.</p>
-        </div>
-        <div><h4>Platform</h4><a href="{% url 'find_a_ride' %}">Find a Ride</a><a href="{% url 'offer_a_ride' %}">Offer a Ride</a><a href="{% url 'how_it_works' %}">How It Works</a><a href="{% url 'top_contributors' %}">Top Contributors</a></div>
-        <div><h4>Charity</h4><a href="{% url 'charity_impact' %}">Where Your Donation Goes</a><a href="{% url 'about' %}">About Us</a></div>
-        <div><h4>Trust & Safety</h4><a href="{% url 'safety' %}">Safety Centre</a><a href="{% url 'community_guidelines' %}">Community Guidelines</a></div>
-        <div><h4>Legal</h4><a href="{% url 'terms' %}">Terms of Use</a><a href="{% url 'privacy' %}">Privacy Policy</a><a href="{% url 'disclaimers' %}">Legal & Compliance</a></div>
-      </div>
-      <div class="footer-bottom"><span>© Backseat. Not a transportation or fare-collection service.</span><span>Donations are collected on behalf of charity partners.</span></div>
-    </div>
-  </footer>
+  <footer class="hidden border-t border-paper-line bg-ink text-on-ink-soft md:block"><div class="mx-auto max-w-6xl px-6 py-14"><div class="grid grid-cols-2 gap-10 md:grid-cols-6"><div class="col-span-2"><a class="inline-flex items-center gap-2 text-on-ink" href="{% url 'home' %}"><span class="flex h-9 w-9 items-center justify-center rounded-full bg-on-ink font-display text-lg text-marigold">B</span><span class="font-display text-xl font-semibold">Backseat</span></a><p class="mt-4 max-w-xs text-sm leading-relaxed text-on-ink-soft">Every ride offered here is free. Every donation is a choice. Backseat never sets a fare.</p></div><div><p class="mb-3 text-xs font-semibold uppercase tracking-wide text-on-ink-soft/70">Platform</p><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'find_a_ride' %}">Find a Ride</a><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'offer_a_ride' %}">Offer a Ride</a><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'how_it_works' %}">How It Works</a><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'top_contributors' %}">Top Contributors</a></div><div><p class="mb-3 text-xs font-semibold uppercase tracking-wide text-on-ink-soft/70">Charity</p><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'charity_impact' %}">Where Your Donation Goes</a><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'about' %}">About Us</a></div><div><p class="mb-3 text-xs font-semibold uppercase tracking-wide text-on-ink-soft/70">Trust & Safety</p><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'safety' %}">Safety Centre</a><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'community_guidelines' %}">Community Guidelines</a></div><div><p class="mb-3 text-xs font-semibold uppercase tracking-wide text-on-ink-soft/70">Legal</p><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'terms' %}">Terms of Use</a><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'privacy' %}">Privacy Policy</a><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'disclaimers' %}">Legal & Compliance</a></div></div><div class="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-on-ink-soft/70 md:flex-row md:items-center md:justify-between"><p>© Backseat. Not a transportation or fare-collection service.</p><p>Donations are collected on behalf of registered charity partners.</p></div></div></footer>
 </body>
 </html>
