@@ -1,0 +1,1 @@
+{% extends "backseat/base.html" %}{% block content %}<section class="panel"><h1>Donation QR</h1>{% if rider %}<img class="qr" src="{% url 'qr_png' rider.charity_code %}" alt="Donation QR"><p>/donate/{{ rider.charity_code }}</p>{% else %}<p>Create a rider profile first.</p>{% endif %}</section>{% endblock %}

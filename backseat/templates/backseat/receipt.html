@@ -1,0 +1,1 @@
+{% extends "backseat/base.html" %}{% block content %}<section class="panel"><p class="eyebrow">Receipt</p><h1>{{ donation.donation_ref }}</h1><p>₹{{ donation.amount|floatformat:0 }} · {{ donation.status }} · {{ donation.payment_method }}</p><button class="button" onclick="window.print()">Print receipt</button></section>{% endblock %}
