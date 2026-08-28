@@ -13,12 +13,34 @@ MIDDLEWARE = ["django.middleware.security.SecurityMiddleware", "django.contrib.s
 ROOT_URLCONF = "config.urls"
 TEMPLATES = [{"BACKEND": "django.template.backends.django.DjangoTemplates", "DIRS": [], "APP_DIRS": True, "OPTIONS": {"context_processors": ["django.template.context_processors.debug", "django.template.context_processors.request", "django.contrib.auth.context_processors.auth", "django.contrib.messages.context_processors.messages", "backseat.context_processors.nav_profile"]}}]
 WSGI_APPLICATION = "config.wsgi.application"
-database_url = os.getenv("DATABASE_URL", "")
-if database_url.startswith("postgresql://"):
+database_url = os.getenv("DATABASE_URL", "").strip()
+if database_url.startswith(("postgresql://", "postgres://")):
     parsed = urlparse(database_url)
-    DATABASES = {"default": {"ENGINE": "django.db.backends.postgresql", "NAME": parsed.path.lstrip("/"), "USER": parsed.username, "PASSWORD": parsed.password, "HOST": parsed.hostname, "PORT": parsed.port or 5432}}
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": parsed.path.lstrip("/"),
+            "USER": parsed.username,
+            "PASSWORD": parsed.password,
+            "HOST": parsed.hostname or "localhost",
+            "PORT": parsed.port or 5432,
+        }
+    }
+elif database_url.startswith("sqlite://"):
+    db_path = database_url.replace("sqlite:///", "").replace("sqlite://", "")
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / db_path if db_path else BASE_DIR / "db.sqlite3",
+        }
+    }
 else:
-    raise RuntimeError("DATABASE_URL must be configured with a local PostgreSQL connection, for example postgresql://backseat_app:change-me@localhost:5432/backseat")
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Asia/Kolkata"
 USE_I18N = True
