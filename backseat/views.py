@@ -1061,15 +1061,46 @@ def block_user(request, user_id):
 def admin_console(request):
     tab = request.GET.get("tab", "overview")
 
+    # Enhanced statistics
+    total_donated = Donation.objects.filter(status="SUCCESS").aggregate(t=Sum("amount"))["t"] or 0
+    today = timezone.now().date()
+    today_donated = Donation.objects.filter(status="SUCCESS", created_at__date=today).aggregate(t=Sum("amount"))["t"] or 0
+    month_start = today.replace(day=1)
+    month_donated = Donation.objects.filter(status="SUCCESS", created_at__date__gte=month_start).aggregate(t=Sum("amount"))["t"] or 0
+    
     stats = {
         "users_count": UserProfile.objects.count(),
+        "active_riders": RiderProfile.objects.filter(is_vehicle_verified=True).count(),
         "riders_count": RiderProfile.objects.count(),
         "rides_count": RideOffer.objects.count(),
+        "total_rides": RideJoin.objects.filter(status="COMPLETED").count(),
         "donations_count": Donation.objects.filter(status="SUCCESS").count(),
-        "total_donations": Donation.objects.filter(status="SUCCESS").aggregate(t=Sum("amount"))["t"] or 0,
+        "total_donations": total_donated,
+        "today_donations": today_donated,
+        "month_donations": month_donated,
+        "people_helped": RideJoin.objects.filter(status__in=["ACCEPTED", "COMPLETED"]).values("passenger").distinct().count(),
         "unverified_riders": RiderProfile.objects.filter(is_vehicle_verified=False).count(),
+        "pending_verification": RiderProfile.objects.filter(is_vehicle_verified=False).count(),
         "open_reports": Report.objects.filter(status="OPEN").count(),
     }
+
+    # Top contributors leaderboard
+    leaderboard = (
+        RiderProfile.objects
+        .annotate(total_donated=Sum("donations__amount"))
+        .filter(total_donated__gt=0, hidden_from_leaderboard=False)
+        .values("id", "user_profile__user__first_name", "user_profile__user__username", "total_donated")
+        .order_by("-total_donated")[:5]
+    )
+    
+    leaderboard_formatted = []
+    for i, entry in enumerate(leaderboard, 1):
+        name = entry["user_profile__user__first_name"] or entry["user_profile__user__username"]
+        leaderboard_formatted.append({
+            "rank": i,
+            "displayName": name,
+            "totalDonated": entry["total_donated"] or 0,
+        })
 
     users_list = UserProfile.objects.select_related("user", "rider_profile").order_by("-created_at")
     riders_list = RiderProfile.objects.select_related("user_profile__user").order_by("-member_since")
@@ -1088,6 +1119,7 @@ def admin_console(request):
         {
             "tab": tab,
             "stats": stats,
+            "leaderboard": leaderboard_formatted,
             "users": users_list,
             "riders": riders_list,
             "rides": rides_list,

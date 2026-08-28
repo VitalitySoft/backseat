@@ -56,6 +56,9 @@
       <a href="?tab=audit" class="flex items-center gap-2.5 rounded-2xl px-4 py-2.5 text-xs font-bold transition-colors {% if tab == 'audit' %}bg-ink text-on-ink shadow-sm{% else %}text-text-soft hover:bg-paper-dim hover:text-ink{% endif %}">
         <i data-lucide="file-text" class="h-4 w-4"></i> Audit Trail
       </a>
+      <a href="?tab=leaderboard" class="flex items-center gap-2.5 rounded-2xl px-4 py-2.5 text-xs font-bold transition-colors {% if tab == 'leaderboard' %}bg-ink text-on-ink shadow-sm{% else %}text-text-soft hover:bg-paper-dim hover:text-ink{% endif %}">
+        <i data-lucide="trophy" class="h-4 w-4"></i> Leaderboard
+      </a>
       <a href="/admin/chatbot-documents" class="flex items-center gap-2.5 rounded-2xl px-4 py-2.5 text-xs font-bold transition-colors {% if tab == 'chatbot-documents' %}bg-ink text-on-ink shadow-sm{% else %}text-text-soft hover:bg-paper-dim hover:text-ink{% endif %}">
         <i data-lucide="bot" class="h-4 w-4"></i> Chatbot Docs
       </a>
@@ -67,18 +70,19 @@
       <!-- 1. OVERVIEW TAB -->
       {% if tab == "overview" %}
         <div class="space-y-6">
+          <!-- Quick stats cards -->
           <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <div class="rounded-2xl border border-paper-line bg-white p-5 shadow-sm">
               <p class="text-xs font-bold uppercase text-text-soft">Total Users</p>
               <p class="mt-2 font-display text-3xl font-bold text-ink">{{ stats.users_count }}</p>
             </div>
             <div class="rounded-2xl border border-paper-line bg-white p-5 shadow-sm">
-              <p class="text-xs font-bold uppercase text-text-soft">Riders</p>
-              <p class="mt-2 font-display text-3xl font-bold text-ink">{{ stats.riders_count }}</p>
+              <p class="text-xs font-bold uppercase text-text-soft">Active Riders</p>
+              <p class="mt-2 font-display text-3xl font-bold text-ink">{{ stats.active_riders }}</p>
             </div>
             <div class="rounded-2xl border border-paper-line bg-white p-5 shadow-sm">
               <p class="text-xs font-bold uppercase text-text-soft">Total Rides</p>
-              <p class="mt-2 font-display text-3xl font-bold text-ink">{{ stats.rides_count }}</p>
+              <p class="mt-2 font-display text-3xl font-bold text-ink">{{ stats.total_rides }}</p>
             </div>
             <div class="rounded-2xl border border-paper-line bg-white p-5 shadow-sm">
               <p class="text-xs font-bold uppercase text-text-soft">Total Raised</p>
@@ -86,17 +90,75 @@
             </div>
           </div>
 
-          {% if stats.unverified_riders > 0 %}
-            <div class="flex items-center justify-between rounded-3xl border border-rose/30 bg-rose-pale/40 p-6">
-              <div>
-                <h3 class="font-display text-base font-bold text-ink">{{ stats.unverified_riders }} Rider(s) Awaiting Verification</h3>
-                <p class="text-xs text-text-soft mt-0.5">Approve their vehicle details to enable QR and seat sharing.</p>
-              </div>
-              <a href="?tab=riders" class="rounded-full bg-ink px-4 py-2 text-xs font-bold text-on-ink hover:bg-ink-soft">
-                Review &rarr;
-              </a>
+          <!-- Additional stats row -->
+          <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div class="rounded-2xl border border-paper-line bg-white p-5 shadow-sm">
+              <p class="text-xs font-bold uppercase text-text-soft">People Helped</p>
+              <p class="mt-2 font-display text-3xl font-bold text-ink">{{ stats.people_helped }}</p>
+            </div>
+            <div class="rounded-2xl border border-paper-line bg-white p-5 shadow-sm">
+              <p class="text-xs font-bold uppercase text-text-soft">Today's Donations</p>
+              <p class="mt-2 font-display text-3xl font-bold text-marigold-deep">₹{{ stats.today_donations|floatformat:0 }}</p>
+            </div>
+            <div class="rounded-2xl border border-paper-line bg-white p-5 shadow-sm">
+              <p class="text-xs font-bold uppercase text-text-soft">This Month</p>
+              <p class="mt-2 font-display text-3xl font-bold text-marigold-deep">₹{{ stats.month_donations|floatformat:0 }}</p>
+            </div>
+            <div class="rounded-2xl border border-paper-line bg-white p-5 shadow-sm">
+              <p class="text-xs font-bold uppercase text-text-soft">Unverified Riders</p>
+              <p class="mt-2 font-display text-3xl font-bold text-rose">{{ stats.pending_verification }}</p>
+            </div>
+          </div>
+
+          <!-- Alerts for action items -->
+          {% if stats.open_reports > 0 or stats.pending_verification > 0 %}
+            <div class="space-y-3">
+              {% if stats.open_reports > 0 %}
+                <div class="flex items-center justify-between rounded-3xl border border-rose/30 bg-rose-pale/40 p-6">
+                  <div>
+                    <h3 class="font-display text-base font-bold text-ink">{{ stats.open_reports }} Report(s) Awaiting Review</h3>
+                    <p class="text-xs text-text-soft mt-0.5">Review safety reports and take appropriate action.</p>
+                  </div>
+                  <a href="?tab=reports" class="rounded-full bg-ink px-4 py-2 text-xs font-bold text-on-ink hover:bg-ink-soft">
+                    Review →
+                  </a>
+                </div>
+              {% endif %}
+              {% if stats.pending_verification > 0 %}
+                <div class="flex items-center justify-between rounded-3xl border border-marigold/30 bg-marigold-pale/40 p-6">
+                  <div>
+                    <h3 class="font-display text-base font-bold text-ink">{{ stats.pending_verification }} Rider(s) Awaiting Verification</h3>
+                    <p class="text-xs text-text-soft mt-0.5">Approve their vehicle details to enable QR and seat sharing.</p>
+                  </div>
+                  <a href="?tab=riders" class="rounded-full bg-ink px-4 py-2 text-xs font-bold text-on-ink hover:bg-ink-soft">
+                    Verify →
+                  </a>
+                </div>
+              {% endif %}
             </div>
           {% endif %}
+
+          <!-- Top Contributors Leaderboard -->
+          <div class="rounded-3xl border border-paper-line bg-white p-6 shadow-sm">
+            <div class="flex items-center justify-between">
+              <h2 class="font-display text-lg text-ink">Top Contributors</h2>
+              <a href="?tab=leaderboard" class="text-sm font-semibold text-marigold-deep hover:underline">
+                Manage leaderboard →
+              </a>
+            </div>
+            <div class="mt-4 space-y-2">
+              {% for entry in leaderboard %}
+                <div class="flex items-center justify-between rounded-xl bg-paper-dim/60 px-4 py-3 text-sm">
+                  <span class="text-ink">
+                    #{{ entry.rank }} {{ entry.displayName }}
+                  </span>
+                  <span class="font-semibold text-ink">₹{{ entry.totalDonated|floatformat:0 }}</span>
+                </div>
+              {% empty %}
+                <p class="text-center py-4 text-sm text-text-soft">No contributions yet.</p>
+              {% endfor %}
+            </div>
+          </div>
         </div>
 
       <!-- 2. RIDERS & VERIFICATION TAB -->
@@ -411,6 +473,33 @@
                 {% endfor %}
               </tbody>
             </table>
+          </div>
+        </div>
+
+      <!-- 10. LEADERBOARD TAB -->
+      {% elif tab == "leaderboard" %}
+        <div class="rounded-3xl border border-paper-line bg-white p-6 shadow-sm">
+          <h2 class="font-display text-xl font-bold text-ink mb-4">Top Contributors Leaderboard</h2>
+          <p class="text-sm text-text-soft mb-4">Verified riders ranked by total charitable donations. Toggle visibility below.</p>
+          <div class="space-y-2">
+            {% for entry in leaderboard %}
+              <div class="flex items-center justify-between rounded-xl bg-paper-dim/60 px-4 py-3">
+                <div class="flex items-center gap-3">
+                  <span class="flex h-8 w-8 items-center justify-center rounded-full bg-marigold-pale text-sm font-bold text-marigold-deep">
+                    #{{ entry.rank }}
+                  </span>
+                  <div>
+                    <p class="text-sm font-semibold text-ink">{{ entry.displayName }}</p>
+                    <p class="text-xs text-text-soft">Verified rider</p>
+                  </div>
+                </div>
+                <span class="font-display text-lg font-bold text-ink">
+                  ₹{{ entry.totalDonated|floatformat:0 }}
+                </span>
+              </div>
+            {% empty %}
+              <p class="text-center py-4 text-sm text-text-soft">No verified riders yet.</p>
+            {% endfor %}
           </div>
         </div>
       {% endif %}

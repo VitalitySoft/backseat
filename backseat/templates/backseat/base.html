@@ -63,12 +63,25 @@
       <!-- Brand Logo -->
       <a href="{% url 'home' %}" class="inline-flex items-center gap-2.5 text-ink transition-transform hover:scale-[1.02]">
         <div class="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-marigold shadow-md shadow-ink/20">
-          <!-- Backseat Bike Logo Mark -->
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="5.5" cy="17.5" r="3.5"/>
-            <circle cx="18.5" cy="17.5" r="3.5"/>
-            <path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5L9 9l3-3 3.5 3h3.5"/>
-            <path d="M5.5 17.5 9 9"/>
+          <!-- Backseat Bike Logo Mark (from static/logo.svg) -->
+          <svg viewBox="0 0 40 40" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <g>
+              <!-- wheels -->
+              <circle cx="10" cy="30" r="6" />
+              <circle cx="30" cy="30" r="6" />
+              <!-- frame -->
+              <line x1="17" y1="18" x2="10" y2="30" />
+              <line x1="17" y1="18" x2="30" y2="30" />
+              <line x1="17" y1="18" x2="27" y2="14" />
+              <line x1="27" y1="14" x2="30" y2="30" />
+              <line x1="15" y1="17.5" x2="19" y2="17.5" />
+              <!-- rider: torso leaning forward, arm to the handlebar, leg to the pedal -->
+              <line x1="17" y1="17" x2="15" y2="8" />
+              <line x1="15.5" y1="10" x2="26" y2="14" />
+              <line x1="17" y1="17" x2="24" y2="26" />
+            </g>
+            <!-- head, turned back over the shoulder -->
+            <circle cx="11.5" cy="6.5" r="3.1" fill="currentColor" />
           </svg>
         </div>
         <div class="flex flex-col">
@@ -366,7 +379,23 @@
         <!-- Col 1: Brand & VitalitySoft attribution -->
         <div class="col-span-2 space-y-4">
           <a href="{% url 'home' %}" class="inline-flex items-center gap-2 text-on-ink">
-            <span class="flex h-9 w-9 items-center justify-center rounded-full bg-on-ink font-display text-lg font-bold text-marigold">B</span>
+            <span class="flex h-9 w-9 items-center justify-center rounded-full bg-on-ink text-marigold">
+              <svg viewBox="0 0 40 40" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <g>
+                  <circle cx="10" cy="30" r="6" />
+                  <circle cx="30" cy="30" r="6" />
+                  <line x1="17" y1="18" x2="10" y2="30" />
+                  <line x1="17" y1="18" x2="30" y2="30" />
+                  <line x1="17" y1="18" x2="27" y2="14" />
+                  <line x1="27" y1="14" x2="30" y2="30" />
+                  <line x1="15" y1="17.5" x2="19" y2="17.5" />
+                  <line x1="17" y1="17" x2="15" y2="8" />
+                  <line x1="15.5" y1="10" x2="26" y2="14" />
+                  <line x1="17" y1="17" x2="24" y2="26" />
+                </g>
+                <circle cx="11.5" cy="6.5" r="3.1" fill="currentColor" />
+              </svg>
+            </span>
             <span class="font-display text-xl font-bold">Backseat</span>
           </a>
           <p class="max-w-xs text-sm leading-relaxed text-on-ink-soft">
@@ -374,7 +403,7 @@
           </p>
           <div class="pt-2">
             <p class="text-xs font-semibold uppercase tracking-wider text-on-ink-soft/70">Crafted with care by</p>
-            <p class="font-display text-base text-marigold">VitalitySoft</p>
+            <img src="{% static 'vitalitysoft-logo.png' %}" alt="VitalitySoft" class="h-8 mt-2" style="filter: invert(1) brightness(1.1); max-width: 180px;">
           </div>
         </div>
 

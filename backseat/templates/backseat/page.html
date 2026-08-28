@@ -1,4 +1,5 @@
 {% extends "backseat/base.html" %}
+{% load static %}
 
 {% block content %}
 <div class="mx-auto max-w-3xl px-6 py-16">
@@ -27,8 +28,30 @@
         </p>
 
         <div class="my-6 rounded-2xl bg-paper-dim/60 p-6 border border-paper-line">
-          <p class="font-display text-lg font-bold text-ink">Crafted by VitalitySoft</p>
-          <p class="mt-1 text-xs text-text-soft leading-relaxed">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-ink text-marigold">
+              <svg viewBox="0 0 40 40" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <g>
+                  <circle cx="10" cy="30" r="6" />
+                  <circle cx="30" cy="30" r="6" />
+                  <line x1="17" y1="18" x2="10" y2="30" />
+                  <line x1="17" y1="18" x2="30" y2="30" />
+                  <line x1="17" y1="18" x2="27" y2="14" />
+                  <line x1="27" y1="14" x2="30" y2="30" />
+                  <line x1="15" y1="17.5" x2="19" y2="17.5" />
+                  <line x1="17" y1="17" x2="15" y2="8" />
+                  <line x1="15.5" y1="10" x2="26" y2="14" />
+                  <line x1="17" y1="17" x2="24" y2="26" />
+                </g>
+                <circle cx="11.5" cy="6.5" r="3.1" fill="currentColor" />
+              </svg>
+            </div>
+            <div>
+              <p class="font-display text-lg font-bold text-ink">Crafted by VitalitySoft</p>
+              <img src="{% static 'vitalitysoft-logo.png' %}" alt="VitalitySoft" class="h-6 mt-1" style="filter: invert(1) brightness(0.9); max-width: 120px;">
+            </div>
+          </div>
+          <p class="mt-3 text-xs text-text-soft leading-relaxed">
             VitalitySoft develops purposeful software solutions that connect communities and amplify positive social impact across India.
           </p>
         </div>

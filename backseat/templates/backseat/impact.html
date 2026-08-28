@@ -1,4 +1,5 @@
 {% extends "backseat/base.html" %}
+{% load static %}
 
 {% block content %}
 <div class="mx-auto max-w-5xl px-6 py-16">
@@ -125,6 +126,33 @@
     {% endif %}
   </div>
 
+</div>
+
+<!-- VitalitySoft Footer -->
+<div class="mt-16 pt-10 border-t border-paper-line text-center">
+  <p class="text-xs font-semibold uppercase tracking-wider text-text-soft mb-3">Powered by</p>
+  <div class="flex items-center justify-center gap-2">
+    <div class="flex h-8 w-8 items-center justify-center rounded-full bg-ink text-marigold">
+      <svg viewBox="0 0 40 40" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <g>
+          <circle cx="10" cy="30" r="6" />
+          <circle cx="30" cy="30" r="6" />
+          <line x1="17" y1="18" x2="10" y2="30" />
+          <line x1="17" y1="18" x2="30" y2="30" />
+          <line x1="17" y1="18" x2="27" y2="14" />
+          <line x1="27" y1="14" x2="30" y2="30" />
+          <line x1="15" y1="17.5" x2="19" y2="17.5" />
+          <line x1="17" y1="17" x2="15" y2="8" />
+          <line x1="15.5" y1="10" x2="26" y2="14" />
+          <line x1="17" y1="17" x2="24" y2="26" />
+        </g>
+        <circle cx="11.5" cy="6.5" r="3.1" fill="currentColor" />
+      </svg>
+    </div>
+    <span class="font-display font-bold text-ink">Backseat</span>
+    <span class="text-text-soft">by</span>
+  </div>
+  <img src="{% static 'vitalitysoft-logo.png' %}" alt="VitalitySoft" class="h-6 mt-2 mx-auto" style="filter: brightness(1) invert(0); max-width: 140px; opacity: 0.8;">
 </div>
 
 <script>
