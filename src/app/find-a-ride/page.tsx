@@ -40,8 +40,8 @@ export default async function FindARidePage({
       status: "ACTIVE",
       rider: { isSharingActive: true, isVehicleVerified: true },
       OR: [{ departureAt: null }, { departureAt: { gt: new Date() } }],
-      ...(from ? { startLocation: { contains: from } } : {}),
-      ...(to ? { destination: { contains: to } } : {}),
+      ...(from ? { startLocation: { contains: from, mode: "insensitive" } } : {}),
+      ...(to ? { destination: { contains: to, mode: "insensitive" } } : {}),
       ...(vehicleType ? { vehicleType } : {}),
     },
     include: {

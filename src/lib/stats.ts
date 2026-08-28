@@ -2,7 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import type { LeaderboardDisplay } from "@/lib/constants";
 
-export function displayNameFor(fullName: string, pref: string): string {
+export function displayNameFor(fullName: string, pref: LeaderboardDisplay | string): string {
   if (pref === "ANONYMOUS") return "A kind traveller";
   if (pref === "FIRST_NAME_INITIAL") {
     const parts = fullName.trim().split(/\s+/);

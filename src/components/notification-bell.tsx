@@ -32,9 +32,26 @@ export function NotificationBell() {
   }
 
   useEffect(() => {
-    load();
-    const interval = setInterval(load, 30000);
-    return () => clearInterval(interval);
+    let mounted = true;
+    async function fetchNotifications() {
+      try {
+        const res = await fetch("/api/notifications");
+        if (res.ok && mounted) {
+          const data = await res.json();
+          setNotifications(data.notifications);
+          setUnreadCount(data.unreadCount);
+          setLoaded(true);
+        }
+      } catch {
+        // Ignore fetch errors
+      }
+    }
+    void fetchNotifications();
+    const interval = setInterval(() => void fetchNotifications(), 30000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {

@@ -8,13 +8,15 @@ import { Button } from "@/components/ui/button";
 
 export function QrDisplay({ charityCode, riderName }: { charityCode: string; riderName: string }) {
   const router = useRouter();
-  const [origin, setOrigin] = useState("");
   const [copied, setCopied] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
+  const [origin, setOrigin] = useState(() => (typeof window !== "undefined" ? window.location.origin : ""));
 
   useEffect(() => {
-    setOrigin(window.location.origin);
-  }, []);
+    if (!origin && typeof window !== "undefined") {
+      setOrigin(window.location.origin);
+    }
+  }, [origin]);
 
   const url = origin ? `${origin}/donate/${charityCode}` : "";
 

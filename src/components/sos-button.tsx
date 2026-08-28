@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { AlertTriangle, PhoneCall } from "lucide-react";
 
 export function SosButton({ loggedIn }: { loggedIn: boolean }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [sent, setSent] = useState(false);
 
   async function trigger() {
     if (!loggedIn) {
-      window.location.href = "/login";
+      router.push("/login");
       return;
     }
     await fetch("/api/sos", {

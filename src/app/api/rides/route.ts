@@ -78,8 +78,8 @@ export async function GET(req: Request) {
       status: "ACTIVE",
       rider: { isSharingActive: true, isVehicleVerified: true },
       OR: [{ departureAt: null }, { departureAt: { gt: new Date() } }],
-      ...(from ? { startLocation: { contains: from } } : {}),
-      ...(to ? { destination: { contains: to } } : {}),
+      ...(from ? { startLocation: { contains: from, mode: "insensitive" } } : {}),
+      ...(to ? { destination: { contains: to, mode: "insensitive" } } : {}),
       ...(vehicleType && VEHICLE_TYPES.includes(vehicleType as never)
         ? { vehicleType }
         : {}),

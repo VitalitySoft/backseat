@@ -37,11 +37,25 @@ export function ChatPanel({
 
   useEffect(() => {
     if (!open) return;
-    load();
-    const interval = setInterval(load, 6000);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+    let mounted = true;
+    async function fetchMessages() {
+      try {
+        const res = await fetch(`/api/rides/${rideId}/joins/${joinId}/messages`);
+        if (res.ok && mounted) {
+          const data = await res.json();
+          setMessages(data.messages);
+        }
+      } catch {
+        // Ignore fetch errors during polling
+      }
+    }
+    void fetchMessages();
+    const interval = setInterval(() => void fetchMessages(), 6000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [open, rideId, joinId]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });

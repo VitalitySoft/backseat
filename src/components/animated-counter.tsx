@@ -12,11 +12,10 @@ export function AnimatedCounter({
   prefix?: string;
   suffix?: string;
 }) {
-  const [display, setDisplay] = useState(0);
+  const [display, setDisplay] = useState(() => (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches ? value : 0));
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setDisplay(value);
       return;
     }
     const controls = animate(0, value, {

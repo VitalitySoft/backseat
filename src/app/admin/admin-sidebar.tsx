@@ -15,6 +15,7 @@ import {
   Trophy,
   ScrollText,
   FileText,
+  LogOut,
 } from "lucide-react";
 
 const SECTIONS = [
@@ -34,6 +35,16 @@ const SECTIONS = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
+
+  async function handleLogout() {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // Proceed
+    }
+    window.location.href = "/";
+  }
+
   return (
     <nav className="scrollbar-none flex gap-1 overflow-x-auto border-b border-paper-line bg-white px-4 py-2 md:w-60 md:shrink-0 md:flex-col md:overflow-visible md:border-b-0 md:border-r md:px-3 md:py-6">
       {SECTIONS.map((s) => {
@@ -51,6 +62,16 @@ export function AdminSidebar() {
           </Link>
         );
       })}
+      <div className="mt-auto hidden pt-6 md:block">
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-rose-deep hover:bg-rose-pale transition-colors"
+        >
+          <LogOut className="h-4 w-4 shrink-0" />
+          Log out
+        </button>
+      </div>
     </nav>
   );
 }

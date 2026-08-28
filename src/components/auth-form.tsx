@@ -29,8 +29,8 @@ export function AuthForm({ mode }: { mode: Mode }) {
         setLoading(false);
         return;
       }
-      router.push("/dashboard");
-      router.refresh();
+      const target = data.role === "ADMIN" ? "/admin" : "/dashboard";
+      window.location.href = target;
     } catch {
       setError("Network error. Please try again.");
       setLoading(false);

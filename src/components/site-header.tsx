@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Menu, X, ChevronDown } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { NotificationBell } from "@/components/notification-bell";
@@ -29,17 +29,34 @@ function memberLinks() {
 
 export function SiteHeader({ user }: { user: NavUser | null }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const isAdmin = user?.role === "ADMIN";
   const navLinks = !user ? PUBLIC_LINKS : isAdmin ? [] : memberLinks();
 
+  useEffect(() => {
+    function handleOutsideClick(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    if (menuOpen) {
+      document.addEventListener("mousedown", handleOutsideClick);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, [menuOpen]);
+
   async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/");
-    router.refresh();
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // Proceed with redirect even if fetch fails
+    }
+    window.location.href = "/";
   }
 
   return (
@@ -83,10 +100,10 @@ export function SiteHeader({ user }: { user: NavUser | null }) {
           {user && (
             <>
               <NotificationBell />
-              <div className="relative">
+              <div className="relative" ref={menuRef}>
                 <button
+                  type="button"
                   onClick={() => setMenuOpen((v) => !v)}
-                  onBlur={() => setTimeout(() => setMenuOpen(false), 150)}
                   className="flex items-center gap-2 rounded-full border border-paper-line bg-white/60 py-1.5 pl-1.5 pr-3 text-sm font-semibold text-ink hover:border-marigold"
                 >
                   <span className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-xs font-bold text-on-ink">
@@ -98,38 +115,71 @@ export function SiteHeader({ user }: { user: NavUser | null }) {
                 {menuOpen && (
                   <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border border-paper-line bg-white shadow-xl shadow-ink/5">
                     {isAdmin ? (
-                      <Link href="/admin" className="block px-4 py-2.5 text-sm text-text hover:bg-paper-dim">
+                      <Link
+                        href="/admin"
+                        onClick={() => setMenuOpen(false)}
+                        className="block px-4 py-2.5 text-sm text-text hover:bg-paper-dim"
+                      >
                         Admin Portal
                       </Link>
                     ) : (
                       <>
-                        <Link href="/dashboard" className="block px-4 py-2.5 text-sm text-text hover:bg-paper-dim">
+                        <Link
+                          href="/dashboard"
+                          onClick={() => setMenuOpen(false)}
+                          className="block px-4 py-2.5 text-sm text-text hover:bg-paper-dim"
+                        >
                           Dashboard
                         </Link>
                         {user.isRider ? (
-                          <Link href="/dashboard/qr" className="block px-4 py-2.5 text-sm text-text hover:bg-paper-dim">
+                          <Link
+                            href="/dashboard/qr"
+                            onClick={() => setMenuOpen(false)}
+                            className="block px-4 py-2.5 text-sm text-text hover:bg-paper-dim"
+                          >
                             Charity QR
                           </Link>
                         ) : (
-                          <Link href="/become-a-rider" className="block px-4 py-2.5 text-sm text-text hover:bg-paper-dim">
+                          <Link
+                            href="/become-a-rider"
+                            onClick={() => setMenuOpen(false)}
+                            className="block px-4 py-2.5 text-sm text-text hover:bg-paper-dim"
+                          >
                             Become a Rider
                           </Link>
                         )}
-                        <Link href="/dashboard/donations" className="block px-4 py-2.5 text-sm text-text hover:bg-paper-dim">
+                        <Link
+                          href="/dashboard/donations"
+                          onClick={() => setMenuOpen(false)}
+                          className="block px-4 py-2.5 text-sm text-text hover:bg-paper-dim"
+                        >
                           Donations
                         </Link>
-                        <Link href="/dashboard/payments" className="block px-4 py-2.5 text-sm text-text hover:bg-paper-dim">
+                        <Link
+                          href="/dashboard/payments"
+                          onClick={() => setMenuOpen(false)}
+                          className="block px-4 py-2.5 text-sm text-text hover:bg-paper-dim"
+                        >
                           Payments
                         </Link>
-                        <Link href="/dashboard/impact" className="block px-4 py-2.5 text-sm text-text hover:bg-paper-dim">
+                        <Link
+                          href="/dashboard/impact"
+                          onClick={() => setMenuOpen(false)}
+                          className="block px-4 py-2.5 text-sm text-text hover:bg-paper-dim"
+                        >
                           Impact
                         </Link>
-                        <Link href="/dashboard/profile" className="block px-4 py-2.5 text-sm text-text hover:bg-paper-dim">
+                        <Link
+                          href="/dashboard/profile"
+                          onClick={() => setMenuOpen(false)}
+                          className="block px-4 py-2.5 text-sm text-text hover:bg-paper-dim"
+                        >
                           Profile
                         </Link>
                       </>
                     )}
                     <button
+                      type="button"
                       onClick={handleLogout}
                       className="block w-full border-t border-paper-line px-4 py-2.5 text-left text-sm text-rose-deep hover:bg-rose-pale"
                     >

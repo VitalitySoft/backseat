@@ -23,7 +23,7 @@ export default function HowItWorksPage() {
       <div className="text-center">
         <h1 className="font-display text-4xl text-ink">How Backseat Works</h1>
         <p className="mx-auto mt-3 max-w-xl text-text-soft">
-          One simple idea: if you're already going somewhere, take someone along. They don't
+          One simple idea: if you&apos;re already going somewhere, take someone along. They don&apos;t
           have to pay you — but if they wish, they can turn the journey into an act of kindness.
         </p>
       </div>
@@ -64,7 +64,7 @@ export default function HowItWorksPage() {
           <li>• Not a taxi or fare-based transport service — there is no price list, meter, or booking fee.</li>
           <li>• Riders cannot set, request, or negotiate an amount, on the app or in person.</li>
           <li>• Passengers are never required to pay anything to travel.</li>
-          <li>• Donations, when made, go only to our registered charity partners — never to a rider's account.</li>
+          <li>• Donations, when made, go only to our registered charity partners — never to a rider&apos;s account.</li>
         </ul>
       </div>
 
