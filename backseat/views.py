@@ -408,22 +408,39 @@ def ride_detail(request, ride_id):
                 messages.success(request, "Your request to join this ride has been sent!")
             return redirect("ride_detail", ride_id=ride.id)
 
-        elif action == "message" and my_join:
-            body = request.POST.get("body", "").strip()
-            if body:
-                Message.objects.create(ride_join=my_join, sender=user_profile, body=body)
-                recipient = ride.rider.user_profile if user_profile.id == my_join.passenger_id else my_join.passenger
-                Notification.objects.create(
-                    user_profile=recipient,
-                    type="MESSAGE",
-                    title="New chat message",
-                    body=f"{user_profile.user.get_full_name()}: {body[:60]}",
-                    link=f"/rides/{ride.id}",
-                )
+        elif action == "message":
+            join_id = request.POST.get("join_id")
+            target_join = None
+            if join_id:
+                target_join = RideJoin.objects.filter(id=join_id, ride_offer=ride).first()
+            elif my_join:
+                target_join = my_join
+
+            if target_join and (target_join.passenger_id == user_profile.id or is_owner):
+                body = request.POST.get("body", "").strip()
+                if body:
+                    Message.objects.create(ride_join=target_join, sender=user_profile, body=body)
+                    recipient = target_join.passenger if is_owner else ride.rider.user_profile
+                    sender_name = user_profile.user.get_full_name() or user_profile.user.username
+                    Notification.objects.create(
+                        user_profile=recipient,
+                        type="MESSAGE",
+                        title=f"New chat message from {sender_name}",
+                        body=f"{sender_name}: {body[:60]}",
+                        link=f"/rides/{ride.id}",
+                    )
             return redirect("ride_detail", ride_id=ride.id)
 
     chat_messages = []
-    if my_join:
+    rider_joins = []
+    if is_owner:
+        rider_joins = (
+            RideJoin.objects.filter(ride_offer=ride)
+            .select_related("passenger__user")
+            .prefetch_related("messages__sender__user")
+            .order_by("-created_at")
+        )
+    elif my_join:
         chat_messages = Message.objects.filter(ride_join=my_join).select_related("sender__user").order_by("created_at")
 
     charity = Charity.objects.filter(is_active=True).first()
@@ -436,6 +453,7 @@ def ride_detail(request, ride_id):
             "is_owner": is_owner,
             "my_join": my_join,
             "chat_messages": chat_messages,
+            "rider_joins": rider_joins,
             "charity": charity,
         },
     )
@@ -937,6 +955,39 @@ def update_join(request, join_id):
         messages.info(request, "Ride request cancelled.")
 
     return redirect("my_rides" if is_rider else "my_trips")
+
+
+@login_required
+@require_POST
+def send_join_message(request, join_id):
+    join = get_object_or_404(
+        RideJoin.objects.select_related("ride_offer__rider__user_profile__user", "passenger__user"),
+        id=join_id,
+    )
+    user_profile = profile_for(request.user)
+    is_rider = join.ride_offer.rider.user_profile_id == user_profile.id
+    is_passenger = join.passenger_id == user_profile.id
+
+    if not (is_rider or is_passenger):
+        messages.error(request, "You cannot send messages on this ride request.")
+        return redirect("dashboard")
+
+    body = request.POST.get("body", "").strip()
+    if body:
+        Message.objects.create(ride_join=join, sender=user_profile, body=body)
+        recipient = join.passenger if is_rider else join.ride_offer.rider.user_profile
+        sender_name = user_profile.user.get_full_name() or user_profile.user.username
+        Notification.objects.create(
+            user_profile=recipient,
+            type="MESSAGE",
+            title=f"New message from {sender_name}",
+            body=f"{sender_name}: {body[:60]}",
+            link=f"/rides/{join.ride_offer_id}",
+        )
+        messages.success(request, "Message sent.")
+
+    next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or f"/rides/{join.ride_offer_id}"
+    return redirect(next_url)
 
 
 @login_required

@@ -159,9 +159,9 @@
                               {% endif %}
                             </div>
 
-                            <form method="post" action="{% url 'ride_detail' offer.id %}" class="mt-2 flex gap-2">
+                            <form method="post" action="{% url 'send_join_message' join.id %}" class="mt-2 flex gap-2">
                               {% csrf_token %}
-                              <input type="hidden" name="action" value="message">
+                              <input type="hidden" name="next" value="{% url 'my_rides' %}?status={{ status_filter }}">
                               <input type="text" name="body" placeholder="Send pickup update…" required class="flex-1 rounded-full border border-paper-line bg-paper px-3 py-1.5 text-xs outline-none focus:border-marigold">
                               <button type="submit" class="rounded-full bg-ink px-3 py-1.5 text-xs font-bold text-on-ink hover:bg-ink-soft">Send</button>
                             </form>
