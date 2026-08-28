@@ -138,6 +138,28 @@ function chunkCsvContent(csvStr: string): string[] {
   return chunks.length > 0 ? chunks : lines;
 }
 
+function chunkMarkdownContent(mdStr: string): string[] {
+  const normalized = mdStr.replace(/\r\n/g, "\n").trim();
+  const sections = normalized.split(/\n(?=#{1,6}\s+)/).map((s) => s.trim()).filter(Boolean);
+  if (sections.length === 0) return [];
+
+  const chunks: string[] = [];
+  let docTitle = "";
+
+  for (let i = 0; i < sections.length; i += 1) {
+    const sec = sections[i];
+    const lines = sec.split("\n").map((l) => l.trim()).filter(Boolean);
+    // If the very first section is just a document title (e.g. # Backseat Functional Document) with no body
+    if (lines.length === 1 && lines[0].startsWith("#") && sections.length > 1 && i === 0) {
+      docTitle = lines[0].replace(/^#+\s*/, "").trim();
+      continue;
+    }
+    chunks.push(sec);
+  }
+
+  return chunks.length > 0 ? chunks : [normalized];
+}
+
 /**
  * Splits text/markdown into structured chunks.
  */
@@ -159,10 +181,10 @@ export function splitDocumentIntoChunks(content: string, fileName?: string): str
     if (csvChunks.length > 0) return csvChunks;
   }
 
-  // 3. Markdown headings split
-  const headingSections = normalized.split(/\n(?=#{1,6}\s+)/).map((part) => part.trim()).filter(Boolean);
-  if (headingSections.length > 1) {
-    return headingSections;
+  // 3. Markdown / Heading document chunking
+  if (ext === "md" || ext === "markdown" || normalized.includes("# ")) {
+    const mdChunks = chunkMarkdownContent(normalized);
+    if (mdChunks.length > 0) return mdChunks;
   }
 
   // 4. Q&A pattern split (e.g. Q: ... or Question: ...)
@@ -349,6 +371,77 @@ function scoreAndExtractStructuredItem(
   };
 }
 
+const SYNONYMS: Record<string, string[]> = {
+  hi: ["hello", "hey", "greeting", "greetings", "good morning", "good evening", "howdy"],
+  hello: ["hi", "hey", "greeting", "greetings"],
+  bye: ["goodbye", "bye", "see you", "exit", "quit", "thank you", "thanks"],
+  "thank you": ["thanks", "thank", "bye", "appreciated"],
+  thanks: ["thank you", "thank", "bye", "appreciated"],
+  login: ["sign in", "signin", "log in", "log on", "authenticate", "credentials", "password"],
+  register: ["sign up", "signup", "create account", "new account", "registration", "onboard"],
+  admin: ["administrator", "platform admin", "portal", "management"],
+  "seeded accounts": ["demo accounts", "test accounts", "sample accounts", "default accounts", "seeded credentials", "demo login", "admin login", "rider login", "passenger login", "logins", "credentials"],
+  "demo accounts": ["seeded accounts", "test accounts", "sample accounts", "demo login", "logins", "credentials"],
+  accounts: ["seeded accounts", "demo accounts", "credentials", "logins"],
+  ride: ["trip", "travel", "journey", "carpool"],
+  safety: ["emergency", "sos", "report", "block", "help"],
+};
+
+function getExpandedQuestionTokens(question: string, qWords: string[], qWordSet: Set<string>): Set<string> {
+  const normalizedQuestion = question.toLowerCase().trim();
+  const expanded = new Set(qWords);
+
+  for (const [key, synList] of Object.entries(SYNONYMS)) {
+    if (normalizedQuestion.includes(key) || qWordSet.has(key)) {
+      synList.forEach((s) => {
+        tokenize(s).forEach((st) => expanded.add(st));
+      });
+    }
+    for (const syn of synList) {
+      if (normalizedQuestion.includes(syn) || qWordSet.has(syn)) {
+        expanded.add(key);
+        tokenize(key).forEach((kt) => expanded.add(kt));
+      }
+    }
+  }
+
+  return expanded;
+}
+
+function detectActionLinks(text: string): { label: string; href: string }[] {
+  const lower = text.toLowerCase();
+  const links: { label: string; href: string }[] = [];
+
+  if (lower.includes("find a ride") || lower.includes("search ride") || lower.includes("passenger")) {
+    links.push({ label: "Find a Ride", href: "/find-a-ride" });
+  }
+  if (lower.includes("offer a ride") || lower.includes("vehicle verification") || lower.includes("rider")) {
+    links.push({ label: "Offer a Ride", href: "/offer-a-ride" });
+  }
+  if (lower.includes("register") || lower.includes("create account") || lower.includes("sign up")) {
+    links.push({ label: "Register", href: "/register" });
+  }
+  if (lower.includes("login") || lower.includes("seeded account") || lower.includes("demo account") || lower.includes("sign in")) {
+    links.push({ label: "Login", href: "/login" });
+  }
+  if (lower.includes("donate") || lower.includes("charity") || lower.includes("campaign")) {
+    links.push({ label: "Charity Impact", href: "/charity-impact" });
+  }
+  if (lower.includes("sos") || lower.includes("safety") || lower.includes("report")) {
+    links.push({ label: "Safety & SOS", href: "/safety" });
+  }
+  if (lower.includes("admin")) {
+    links.push({ label: "Admin Portal", href: "/admin" });
+  }
+
+  const seen = new Set<string>();
+  return links.filter((l) => {
+    if (seen.has(l.href)) return false;
+    seen.add(l.href);
+    return true;
+  }).slice(0, 3);
+}
+
 /**
  * Scores a raw text / markdown chunk and extracts clean content.
  */
@@ -359,6 +452,7 @@ function scoreAndExtractTextChunk(
   qWordSet: Set<string>,
 ): ExtractedAnswer {
   const normalizedQuestion = question.toLowerCase().trim();
+  const expandedQ = getExpandedQuestionTokens(question, qWords, qWordSet);
   let score = 0;
 
   const lines = content.split("\n").map((l) => l.trim()).filter(Boolean);
@@ -374,7 +468,7 @@ function scoreAndExtractTextChunk(
       score += 35;
     } else {
       const hWords = tokenize(headingText);
-      const matches = hWords.filter((w) => qWordSet.has(w)).length;
+      const matches = hWords.filter((w) => expandedQ.has(w)).length;
       if (matches === hWords.length && hWords.length > 0) {
         score += 30 + (matches * 10);
       } else if (matches > 0) {
@@ -384,15 +478,18 @@ function scoreAndExtractTextChunk(
   }
 
   const bodyWords = new Set(tokenize(content));
-  for (const qw of qWords) {
+  for (const qw of expandedQ) {
     if (bodyWords.has(qw)) {
       score += 3;
     }
   }
 
+  const cleanAnswer = formatDocumentContent(content);
+  const links = detectActionLinks(cleanAnswer);
+
   return {
-    answer: formatDocumentContent(content),
-    links: [],
+    answer: cleanAnswer,
+    links,
     score,
   };
 }
@@ -442,11 +539,21 @@ export async function answerFromChatbotDocuments(question: string) {
   if (qWords.length === 0) return null;
   const qWordSet = new Set(qWords);
 
-  const chunks = await prisma.chatbotDocumentChunk.findMany({
+  let chunks = await prisma.chatbotDocumentChunk.findMany({
     orderBy: { createdAt: "desc" },
     take: 500,
     include: { document: { select: { fileName: true } } },
   });
+
+  // If no chunks exist, auto-seed default functional documents
+  if (chunks.length === 0) {
+    await seedDefaultChatbotDocuments();
+    chunks = await prisma.chatbotDocumentChunk.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 500,
+      include: { document: { select: { fileName: true } } },
+    });
+  }
 
   if (chunks.length === 0) return null;
 
@@ -479,6 +586,96 @@ export async function answerFromChatbotDocuments(question: string) {
   };
 }
 
+const DEFAULT_FUNCTIONAL_GUIDE = `# Backseat Functional Guide
+
+## Overview
+Backseat is a non-commercial carpooling and ride-sharing platform across India where rides are always 100% free with no fares, booking fees, or price negotiations. Passengers may voluntarily support verified charity partners via rider QR codes.
+
+## Register Account
+Users can register with full name, email, optional phone number, and password. After registration, they can access the dashboard to find rides, offer rides, or view trips.
+
+## Login
+Users can log in using their registered email and password. Blocked accounts are prevented from logging in.
+
+### Seeded accounts (password Demo@123 / admin Admin@123)
+| Role | Email | Password |
+|---|---|---|
+| Admin | admin@backseat.app | Admin@123 |
+| Demo rider | demo.rider@backseat.app | Demo@123 |
+| Demo passenger | demo.passenger@backseat.app | Demo@123 |
+
+## Find a Ride
+Passengers can search available rides by entering pickup location, destination, and vehicle type (Two-Wheeler or Four-Wheeler). Only verified and active rider offers are shown.
+
+## Offer a Ride
+Riders can offer rides after their vehicle registration is verified by administrators. They specify pickup location, destination, departure time, and available spare seats.
+
+## Charity Donations
+After completing a ride, passengers can scan the rider's charity QR code to donate directly to registered charitable organizations via UPI. Riders never receive personal payments or fares.
+
+## Safety & SOS
+Backseat prioritizes safety with user reporting, user blocking, and a dedicated SOS button that immediately alerts platform moderators and connects to emergency number 112.
+
+## Admin Portal
+Administrators have access to manage users, verify riders and vehicles, review ride offers, inspect donations, configure charity partners, investigate fraud signals, review user reports, and manage chatbot functional documents.
+
+## Hi
+Hello! How can I help you today with Backseat? Ask me about finding rides, offering rides, safety, donations, or demo accounts.
+
+### bye
+Thank you for using Backseat! Have a safe and pleasant journey. Visit again!
+`;
+
+/**
+ * Seeds or restores the default functional document in the database.
+ */
+export async function seedDefaultChatbotDocuments() {
+  const existing = await prisma.chatbotDocument.findFirst({
+    where: { fileName: "backseat-functional-guide.md" },
+  });
+
+  const content = DEFAULT_FUNCTIONAL_GUIDE;
+  const chunks = splitDocumentIntoChunks(content, "backseat-functional-guide.md");
+
+  let docId = existing?.id;
+
+  if (existing) {
+    await prisma.chatbotDocument.update({
+      where: { id: existing.id },
+      data: { content },
+    });
+  } else {
+    const admin = await prisma.user.findFirst({ where: { role: "ADMIN" } });
+    const created = await prisma.chatbotDocument.create({
+      data: {
+        fileName: "backseat-functional-guide.md",
+        contentType: "text/markdown",
+        content,
+        uploadedById: admin?.id,
+      },
+    });
+    docId = created.id;
+  }
+
+  if (docId) {
+    await prisma.$transaction([
+      prisma.chatbotDocumentChunk.deleteMany({ where: { documentId: docId } }),
+      prisma.chatbotDocumentChunk.createMany({
+        data: chunks.map((chunk, position) => ({
+          documentId: docId!,
+          content: chunk,
+          position,
+        })),
+      }),
+    ]);
+  }
+
+  return {
+    documentId: docId,
+    chunkCount: chunks.length,
+  };
+}
+
 /**
  * Re-chunks and re-indexes all documents in the database.
  */
@@ -486,6 +683,14 @@ export async function reindexChatbotDocuments() {
   const documents = await prisma.chatbotDocument.findMany({
     include: { chunks: true },
   });
+
+  if (documents.length === 0) {
+    const seeded = await seedDefaultChatbotDocuments();
+    return {
+      documentCount: 1,
+      totalChunks: seeded.chunkCount,
+    };
+  }
 
   let totalChunksCreated = 0;
 

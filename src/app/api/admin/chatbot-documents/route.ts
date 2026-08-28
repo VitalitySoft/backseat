@@ -160,3 +160,28 @@ export async function PATCH() {
   }
 }
 
+export async function PUT() {
+  try {
+    const admin = await requireAdmin();
+    const { seedDefaultChatbotDocuments } = await import("@/lib/chatbot-documents");
+    const result = await seedDefaultChatbotDocuments();
+
+    await prisma.auditLog.create({
+      data: {
+        actorId: admin.id,
+        action: "CHATBOT_DEFAULT_DOCUMENTS_RESTORED",
+        targetType: "ChatbotDocument",
+        metadata: JSON.stringify(result),
+      },
+    });
+
+    return NextResponse.json(result);
+  } catch (error) {
+    if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: 401 });
+    console.error("Chatbot default document restore failed", error);
+    return NextResponse.json({ error: "Could not restore default documents." }, { status: 500 });
+  }
+}
+
+
+

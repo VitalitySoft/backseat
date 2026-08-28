@@ -64,6 +64,30 @@ export function ChatbotDocumentUploadForm() {
     }
   }
 
+  async function handleRestoreDefault() {
+    setMessage("");
+    setReindexing(true);
+
+    try {
+      const response = await fetch("/api/admin/chatbot-documents", {
+        method: "PUT",
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setMessage(data.error ?? "Failed to restore default documents");
+        return;
+      }
+
+      setMessage(`Default functional guide restored (${data.chunkCount} searchable chunks).`);
+      router.refresh();
+    } catch {
+      setMessage("Failed to restore default documents. Please try again.");
+    } finally {
+      setReindexing(false);
+    }
+  }
+
   return (
     <div className="mt-6 rounded-2xl border border-paper-line bg-white p-6">
       <form onSubmit={handleSubmit}>
@@ -94,6 +118,14 @@ export function ChatbotDocumentUploadForm() {
             className="inline-flex items-center gap-2 rounded-full border border-paper-line bg-paper px-4 py-2.5 text-sm font-semibold text-ink hover:border-marigold disabled:cursor-not-allowed disabled:opacity-60"
           >
             {reindexing ? "Re-indexing..." : "Re-index All Documents"}
+          </button>
+          <button
+            type="button"
+            onClick={handleRestoreDefault}
+            disabled={loading || reindexing}
+            className="inline-flex items-center gap-2 rounded-full border border-paper-line bg-marigold-pale/40 px-4 py-2.5 text-sm font-semibold text-marigold-deep hover:bg-marigold-pale disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Restore Default Knowledge
           </button>
           {message && <p className="text-sm text-text-soft">{message}</p>}
         </div>
