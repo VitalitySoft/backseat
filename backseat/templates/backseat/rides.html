@@ -1,32 +1,149 @@
 {% extends "backseat/base.html" %}
+
 {% block content %}
-<section class="mx-auto max-w-4xl px-6 py-16">
+<div class="mx-auto max-w-4xl px-6 py-16">
   <div class="fade-up">
-    <h1 class="font-display text-3xl text-ink sm:text-4xl">Find a Ride</h1>
-    <p class="mt-3 max-w-xl text-text-soft">Every rider here is verified and travelling this route anyway. Join for free; if you feel moved to, you can support their charity afterwards.</p>
+    <h1 class="font-display text-3xl font-bold text-ink sm:text-4xl">Find a Ride</h1>
+    <p class="mt-3 max-w-xl text-text-soft">
+      Every rider here is verified and travelling this route anyway. Join for free — if you
+      feel moved to, you can support their charity afterwards.
+    </p>
   </div>
-  <form class="mt-8 grid gap-3 rounded-3xl border border-paper-line bg-white p-4 shadow-sm sm:grid-cols-[1fr_1fr_auto]" method="get">
-    <input name="q" value="{{ q }}" placeholder="Pickup or destination" class="rounded-full border-paper-line bg-paper">
-    <select name="vehicleType" class="rounded-full border-paper-line bg-paper"><option value="">Any vehicle</option><option value="TWO_WHEELER">Two-wheeler</option><option value="FOUR_WHEELER">Four-wheeler</option></select>
-    <button class="rounded-full bg-ink px-6 py-3 text-sm font-semibold text-on-ink">Search</button>
+
+  <!-- Search Form -->
+  <form class="mt-8 grid gap-3 rounded-3xl border border-paper-line bg-white p-4 shadow-sm sm:grid-cols-3" method="get">
+    <div class="relative flex items-center">
+      <i data-lucide="map-pin" class="absolute left-4 h-4 w-4 text-text-soft"></i>
+      <input
+        type="text"
+        name="from"
+        value="{{ from_q }}"
+        placeholder="Pickup city / area"
+        class="w-full rounded-full border border-paper-line bg-paper py-2.5 pl-10 pr-4 text-sm font-medium text-ink outline-none focus:border-marigold focus:ring-2 focus:ring-marigold/20"
+      >
+    </div>
+
+    <div class="relative flex items-center">
+      <i data-lucide="navigation" class="absolute left-4 h-4 w-4 text-text-soft"></i>
+      <input
+        type="text"
+        name="to"
+        value="{{ to_q }}"
+        placeholder="Destination city / area"
+        class="w-full rounded-full border border-paper-line bg-paper py-2.5 pl-10 pr-4 text-sm font-medium text-ink outline-none focus:border-marigold focus:ring-2 focus:ring-marigold/20"
+      >
+    </div>
+
+    <div class="flex gap-2">
+      <select
+        name="vehicleType"
+        class="flex-1 rounded-full border border-paper-line bg-paper px-4 py-2.5 text-sm font-medium text-ink outline-none focus:border-marigold"
+      >
+        <option value="">Any vehicle</option>
+        <option value="TWO_WHEELER" {% if vehicle_type == "TWO_WHEELER" %}selected{% endif %}>Two-wheeler</option>
+        <option value="FOUR_WHEELER" {% if vehicle_type == "FOUR_WHEELER" %}selected{% endif %}>Four-wheeler</option>
+      </select>
+      <button type="submit" class="rounded-full bg-ink px-6 py-2.5 text-sm font-bold text-on-ink hover:bg-ink-soft shadow-md transition-transform active:scale-95">
+        Search
+      </button>
+    </div>
   </form>
+
+  <!-- Ride Offers List -->
   <div class="mt-8 space-y-4">
-    {% for ride in rides %}
-      <article class="ticket-shell fade-up">
-        <div class="ticket-main">
-          <div class="flex items-center gap-3"><span class="icon-badge">{% if ride.vehicle_type == "TWO_WHEELER" %}Bike{% else %}Car{% endif %}</span><h2 class="font-display text-xl text-ink">{{ ride.start_location }} <span class="text-text-soft">to</span> {{ ride.destination }}</h2></div>
-          <div class="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-text-soft"><span>{{ ride.departure_at|default:"Flexible timing" }}</span><span>{{ ride.vehicle_type }}</span><span>{{ ride.seats_available }} seat(s)</span><span class="text-banyan-deep">Verified rider</span></div>
-          {% if ride.notes %}<p class="mt-3 text-sm italic text-text-soft">"{{ ride.notes }}"</p>{% endif %}
-        </div>
-        <div class="ticket-side">
-          <p class="text-xs uppercase tracking-wide text-text-soft">Offered by</p>
-          <p class="mt-1 font-display text-lg text-ink">{{ ride.rider.user_profile.user.get_full_name }}</p>
-          <a href="{% url 'ride_detail' ride.id %}" class="mt-5 inline-flex rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-on-ink hover:bg-ink-soft">View & Join</a>
-        </div>
-      </article>
-    {% empty %}
-      <p class="rounded-2xl border border-dashed border-paper-line bg-white px-6 py-10 text-center text-text-soft">No matching rides right now. Try a broader search, or check back soon.</p>
-    {% endfor %}
+    {% if rides %}
+      {% for offer in rides %}
+        <article class="ticket-shell fade-up">
+          <div class="ticket-main">
+            <div class="flex items-center gap-3">
+              <span class="flex h-9 w-9 items-center justify-center rounded-full bg-paper-dim text-ink shadow-sm">
+                {% if offer.vehicle_type == "TWO_WHEELER" %}
+                  <i data-lucide="bike" class="h-4.5 w-4.5"></i>
+                {% else %}
+                  <i data-lucide="car" class="h-4.5 w-4.5"></i>
+                {% endif %}
+              </span>
+              <h2 class="font-display text-lg font-bold text-ink">
+                {{ offer.start_location }} <span class="text-text-soft font-normal">&rarr;</span> {{ offer.destination }}
+              </h2>
+            </div>
+
+            <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-text-soft">
+              <span class="flex items-center gap-1.5 font-medium">
+                <i data-lucide="clock" class="h-3.5 w-3.5 text-marigold-deep"></i>
+                {% if offer.departure_at %}
+                  {{ offer.departure_at|date:"D, j M &bull; g:i A" }}
+                {% else %}
+                  Flexible timing
+                {% endif %}
+              </span>
+              <span class="flex items-center gap-1">
+                <i data-lucide="shield" class="h-3.5 w-3.5 text-text-soft"></i>
+                {% if offer.vehicle_type == "TWO_WHEELER" %}Two-wheeler{% else %}Four-wheeler{% endif %}
+              </span>
+              <span class="flex items-center gap-1">
+                <i data-lucide="users" class="h-3.5 w-3.5 text-text-soft"></i>
+                {{ offer.seats_available }} seat(s) available
+              </span>
+              {% if offer.rider.is_vehicle_verified %}
+                <span class="flex items-center gap-1 font-semibold text-banyan-deep">
+                  <i data-lucide="shield-check" class="h-3.5 w-3.5"></i> Verified rider
+                </span>
+              {% endif %}
+            </div>
+
+            {% if offer.notes %}
+              <p class="mt-3 text-sm italic text-text-soft">&ldquo;{{ offer.notes }}&rdquo;</p>
+            {% endif %}
+          </div>
+
+          <div class="ticket-side">
+            <div>
+              <p class="text-xs uppercase tracking-wider font-semibold text-text-soft">Offered by</p>
+              <p class="mt-1 font-display text-base font-bold text-ink">
+                {{ offer.rider.user_profile.user.get_full_name|default:offer.rider.user_profile.user.username }}
+              </p>
+            </div>
+
+            <div class="mt-4">
+              {% if offer.my_join_status == "REQUESTED" %}
+                <span class="inline-block w-full rounded-full bg-marigold-pale px-3 py-2 text-center text-xs font-bold text-marigold-deep">
+                  Request sent — awaiting rider
+                </span>
+              {% elif offer.my_join_status == "ACCEPTED" %}
+                <span class="inline-block w-full rounded-full bg-banyan-pale px-3 py-2 text-center text-xs font-bold text-banyan-deep">
+                  Accepted — you&apos;re in!
+                </span>
+              {% elif offer.my_join_status == "COMPLETED" %}
+                <span class="inline-block w-full rounded-full bg-paper-dim px-3 py-2 text-center text-xs font-bold text-text-soft">
+                  Ride completed
+                </span>
+              {% elif offer.my_join_status == "DECLINED" %}
+                <span class="inline-block w-full rounded-full bg-rose-pale px-3 py-2 text-center text-xs font-bold text-rose-deep">
+                  Declined by rider
+                </span>
+                <a href="{% url 'ride_detail' offer.id %}" class="mt-1.5 block text-center text-xs font-semibold text-marigold-deep hover:underline">
+                  Request again &rarr;
+                </a>
+              {% else %}
+                <a
+                  href="{% url 'ride_detail' offer.id %}"
+                  class="inline-flex w-full items-center justify-center rounded-full bg-ink px-4 py-2.5 text-sm font-bold text-on-ink hover:bg-ink-soft transition-colors shadow-sm"
+                >
+                  View &amp; Join
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        </article>
+      {% endfor %}
+    {% else %}
+      <div class="rounded-3xl border border-dashed border-paper-line bg-white px-6 py-12 text-center text-text-soft">
+        <i data-lucide="search-x" class="mx-auto h-8 w-8 text-text-soft/60"></i>
+        <h3 class="mt-3 font-display text-lg font-bold text-ink">No matching rides found</h3>
+        <p class="mt-1 text-sm text-text-soft">Try searching with a broader location or check back soon.</p>
+      </div>
+    {% endif %}
   </div>
-</section>
+</div>
 {% endblock %}

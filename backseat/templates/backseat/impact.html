@@ -1,19 +1,150 @@
 {% extends "backseat/base.html" %}
+
 {% block content %}
-<section class="bg-paper py-16">
-  <div class="mx-auto max-w-4xl px-6">
-    <div class="text-center fade-up">
-      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-marigold-deep">Charity impact</p>
-      <h1 class="mt-3 font-display text-4xl text-ink">INR {{ total|floatformat:0 }}</h1>
-      <p class="mx-auto mt-3 max-w-xl text-text-soft">Total successful donations recorded through voluntary Backseat giving.</p>
-    </div>
-    <ol class="mt-10 space-y-3">
-      {% for d in donations %}
-        <li class="flex items-center gap-4 rounded-2xl border border-paper-line bg-white px-5 py-4 fade-up"><span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-marigold font-display text-sm text-ink">{{ forloop.counter }}</span><span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-sm font-semibold text-on-ink">{{ d.donor_display_name_snapshot|default:"A"|first }}</span><div class="min-w-0 flex-1"><p class="truncate font-medium text-ink">{{ d.donor_display_name_snapshot|default:"Anonymous" }}</p><p class="text-xs text-text-soft">{{ d.donation_ref }} · {{ d.charity.name }}</p></div><span class="font-display text-lg text-ink">INR {{ d.amount|floatformat:0 }}</span></li>
-      {% empty %}
-        <li class="rounded-2xl border border-dashed border-paper-line bg-white px-6 py-10 text-center text-text-soft">No donations yet.</li>
-      {% endfor %}
-    </ol>
+<div class="mx-auto max-w-5xl px-6 py-16">
+  
+  <!-- Header -->
+  <div class="fade-up text-center max-w-2xl mx-auto">
+    <h1 class="font-display text-3xl font-bold text-ink sm:text-4xl">Community Impact &amp; Leaderboard</h1>
+    <p class="mt-2 text-sm text-text-soft">
+      Celebrating the quiet generosity of riders and travellers turning daily journeys into real-world charitable support.
+    </p>
   </div>
-</section>
+
+  <!-- Tabs Navigation -->
+  <div class="mt-8 flex justify-center">
+    <div class="inline-flex rounded-full border border-paper-line bg-paper-dim/80 p-1">
+      <button
+        type="button"
+        id="tab-btn-leaders"
+        onclick="switchTab('leaders')"
+        class="rounded-full px-5 py-2 text-xs font-bold transition-all bg-white text-ink shadow-sm"
+      >
+        Top Contributors
+      </button>
+      <button
+        type="button"
+        id="tab-btn-charities"
+        onclick="switchTab('charities')"
+        class="rounded-full px-5 py-2 text-xs font-bold transition-all text-text-soft hover:text-ink"
+      >
+        Charity Partners
+      </button>
+    </div>
+  </div>
+
+  <!-- Tab 1: Top Contributors -->
+  <div id="tab-content-leaders" class="mt-10">
+    <div class="rounded-3xl border border-paper-line bg-white p-8 shadow-sm">
+      <div class="flex items-center justify-between border-b border-paper-line pb-4 mb-6">
+        <div>
+          <h2 class="font-display text-xl font-bold text-ink">Contributor Leaderboard</h2>
+          <p class="text-xs text-text-soft">Ranked purely by voluntary donations already given &bull; Updated live</p>
+        </div>
+        <i data-lucide="trophy" class="h-6 w-6 text-marigold"></i>
+      </div>
+
+      <div class="space-y-3">
+        {% if leaderboard %}
+          {% for r in leaderboard %}
+            <div class="flex items-center gap-4 rounded-2xl border border-paper-line p-4 hover:border-marigold/50 transition-colors {% if r.rank == 1 %}bg-marigold-pale/25 border-marigold/40{% endif %}">
+              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-display text-sm font-bold {% if r.rank == 1 %}bg-marigold text-ink shadow-sm{% elif r.rank == 2 %}bg-paper-dim text-ink{% elif r.rank == 3 %}bg-paper-dim text-marigold-deep{% else %}bg-paper text-text-soft{% endif %}">
+                {{ r.rank }}
+              </span>
+
+              <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink text-sm font-bold text-on-ink shadow-sm">
+                {{ r.avatar_initial }}
+              </span>
+
+              <div class="min-w-0 flex-1">
+                <p class="truncate font-display text-base font-bold text-ink">{{ r.display_name }}</p>
+                <p class="text-xs text-text-soft">
+                  {{ r.vehicle_model }} &bull; {{ r.donation_count }} donations received
+                </p>
+              </div>
+
+              <div class="text-right">
+                <span class="font-display text-xl font-bold text-ink">
+                  ₹{{ r.total_donated|floatformat:0 }}
+                </span>
+                <p class="text-[10px] uppercase tracking-wider text-text-soft">Raised</p>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <p class="text-center text-sm text-text-soft py-8">No contributors ranked yet. Be the first to share a ride!</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 2: Charity Partners -->
+  <div id="tab-content-charities" class="mt-10 hidden space-y-6">
+    {% if charities %}
+      {% for charity in charities %}
+        <div class="rounded-3xl border border-paper-line bg-white p-8 shadow-sm">
+          <div class="flex flex-wrap items-start justify-between gap-4 border-b border-paper-line pb-4">
+            <div>
+              <span class="inline-flex items-center gap-1 rounded-full bg-banyan-pale px-3 py-0.5 text-xs font-bold text-banyan-deep">
+                Verified Partner
+              </span>
+              <h2 class="font-display text-2xl font-bold text-ink mt-2">{{ charity.name }}</h2>
+              <p class="text-xs text-text-soft mt-0.5">Registration: {{ charity.registration_number|default:"BCT-2026" }}</p>
+            </div>
+            <span class="font-mono text-xs text-text-soft bg-paper-dim px-3 py-1.5 rounded-full">
+              UPI: {{ charity.beneficiary_upi_vpa }}
+            </span>
+          </div>
+
+          <p class="mt-4 text-sm text-text-soft leading-relaxed">{{ charity.description }}</p>
+
+          <!-- Active Campaigns -->
+          {% if charity.campaigns.all %}
+            <div class="mt-6">
+              <p class="text-xs font-bold uppercase tracking-wider text-text-soft mb-3">Active Campaigns</p>
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {% for c in charity.campaigns.all %}
+                  <div class="rounded-2xl border border-paper-line bg-paper/60 p-4">
+                    <h3 class="font-display text-base font-bold text-ink">{{ c.name }}</h3>
+                    <p class="mt-1 text-xs text-text-soft leading-relaxed">{{ c.description }}</p>
+                    <div class="mt-3 flex items-center justify-between border-t border-paper-line pt-2 text-[11px] text-text-soft">
+                      <span>{{ c.beneficiaries_supported }} beneficiaries helped</span>
+                      <span class="font-semibold text-ink">₹{{ c.amount_distributed|floatformat:0 }} distributed</span>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="rounded-3xl border border-dashed border-paper-line bg-white p-10 text-center text-text-soft">
+        <p>No charity partners configured yet.</p>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<script>
+  function switchTab(tab) {
+    const btnLeaders = document.getElementById('tab-btn-leaders');
+    const btnCharities = document.getElementById('tab-btn-charities');
+    const contentLeaders = document.getElementById('tab-content-leaders');
+    const contentCharities = document.getElementById('tab-content-charities');
+
+    if (tab === 'leaders') {
+      btnLeaders.className = "rounded-full px-5 py-2 text-xs font-bold transition-all bg-white text-ink shadow-sm";
+      btnCharities.className = "rounded-full px-5 py-2 text-xs font-bold transition-all text-text-soft hover:text-ink";
+      contentLeaders.classList.remove('hidden');
+      contentCharities.classList.add('hidden');
+    } else {
+      btnCharities.className = "rounded-full px-5 py-2 text-xs font-bold transition-all bg-white text-ink shadow-sm";
+      btnLeaders.className = "rounded-full px-5 py-2 text-xs font-bold transition-all text-text-soft hover:text-ink";
+      contentCharities.classList.remove('hidden');
+      contentLeaders.classList.add('hidden');
+    }
+  }
+</script>
 {% endblock %}

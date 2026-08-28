@@ -1,12 +1,115 @@
 {% extends "backseat/base.html" %}
+
 {% block content %}
-<section class="mx-auto max-w-2xl px-6 py-16">
-  <div class="rounded-3xl border border-paper-line bg-white p-6 shadow-xl sm:p-8 ticket-notch fade-up">
-    <p class="text-xs font-semibold uppercase tracking-[0.22em] text-marigold-deep">Voluntary donation</p>
-    <h1 class="mt-3 font-display text-3xl text-ink">Support {{ charity.name }}</h1>
-    <p class="mt-3 text-text-soft">Donation for a ride shared by {{ rider.user_profile.user.get_full_name }}. This is never a fare or required payment.</p>
-    <a href="{{ upi }}" class="mt-6 inline-flex rounded-full border border-paper-line bg-paper px-5 py-2.5 text-sm font-semibold text-ink">Open UPI app</a>
-    <form method="post" class="mt-6 grid gap-4">{% csrf_token %}<label>Amount<input type="number" name="amount" min="1" max="100000" value="100"></label><label>Display name<input name="display_name" placeholder="Anonymous"></label><button class="rounded-full bg-marigold px-6 py-3 text-sm font-semibold text-ink">Confirm donation</button></form>
+<div class="mx-auto max-w-xl px-6 py-16">
+  
+  <!-- Header -->
+  <div class="fade-up text-center">
+    <span class="inline-flex items-center gap-1.5 rounded-full bg-marigold-pale px-3 py-1 font-mono text-[11px] uppercase tracking-wider font-bold text-marigold-deep">
+      <i data-lucide="heart" class="h-3.5 w-3.5"></i> Voluntary Contribution
+    </span>
+    <h1 class="mt-4 font-display text-3xl font-bold text-ink sm:text-4xl">Support a Charity Partner</h1>
+    <p class="mt-2 text-sm text-text-soft leading-relaxed max-w-md mx-auto">
+      Your ride with <strong>{{ rider.user_profile.user.get_full_name|default:rider.user_profile.user.username }}</strong> was completely free.
+      If you feel moved to, turn that journey into an act of kindness.
+    </p>
   </div>
-</section>
+
+  <!-- Donation Card -->
+  <div class="mt-8 rounded-3xl border border-paper-line bg-white p-8 shadow-lg shadow-ink/5">
+    
+    <!-- Beneficiary Charity Info -->
+    <div class="rounded-2xl border border-banyan/30 bg-banyan-pale p-4 mb-6">
+      <p class="text-[11px] uppercase tracking-wider font-bold text-banyan-deep">Beneficiary Charity</p>
+      <p class="font-display text-lg font-bold text-ink mt-0.5">{{ charity.name }}</p>
+      <p class="text-xs text-banyan-deep mt-1">{{ charity.description }}</p>
+      <p class="mt-2 font-mono text-[11px] text-text-soft">UPI ID: {{ upi_vpa }}</p>
+    </div>
+
+    <form method="post" id="donation-form" class="space-y-6">
+      {% csrf_token %}
+
+      <!-- Amount Selection Step -->
+      <div id="step-amount">
+        <label class="block text-xs font-bold uppercase tracking-wider text-text-soft mb-2">Tap an amount, or enter your own</label>
+        <div class="grid grid-cols-4 gap-2 mb-3">
+          <button type="button" onclick="selectAmount(50)" class="amount-btn rounded-xl border border-paper-line bg-white py-3 text-sm font-bold text-ink hover:border-marigold transition-all">
+            ₹50
+          </button>
+          <button type="button" onclick="selectAmount(100)" class="amount-btn rounded-xl border border-paper-line bg-white py-3 text-sm font-bold text-ink hover:border-marigold transition-all">
+            ₹100
+          </button>
+          <button type="button" onclick="selectAmount(250)" class="amount-btn rounded-xl border border-paper-line bg-white py-3 text-sm font-bold text-ink hover:border-marigold transition-all">
+            ₹250
+          </button>
+          <button type="button" onclick="selectAmount(500)" class="amount-btn rounded-xl border border-paper-line bg-white py-3 text-sm font-bold text-ink hover:border-marigold transition-all">
+            ₹500
+          </button>
+        </div>
+
+        <div class="relative flex items-center">
+          <span class="absolute left-4 font-display text-lg font-bold text-text-soft">₹</span>
+          <input
+            type="number"
+            id="custom-amount"
+            name="amount"
+            placeholder="Custom amount"
+            min="10"
+            max="50000"
+            required
+            class="w-full rounded-2xl border border-paper-line bg-paper py-3.5 pl-10 pr-4 text-base font-bold text-ink outline-none focus:border-marigold focus:ring-2 focus:ring-marigold/20"
+          >
+        </div>
+
+        <div class="mt-4">
+          <label class="block text-xs font-bold uppercase tracking-wider text-text-soft mb-1.5">Your Name (Optional, for 80G tax receipt)</label>
+          <input
+            type="text"
+            name="donor_name"
+            placeholder="Anonymous is fine too"
+            class="w-full rounded-2xl border border-paper-line bg-paper px-4 py-3 text-sm font-medium text-ink outline-none focus:border-marigold"
+          >
+        </div>
+
+        <div class="mt-6 flex flex-col gap-3">
+          <a
+            href="{{ upi_link }}"
+            id="upi-link-btn"
+            class="flex w-full items-center justify-center gap-2 rounded-full bg-marigold py-3.5 text-sm font-bold text-ink hover:bg-marigold-deep shadow-md transition-transform active:scale-98"
+          >
+            <i data-lucide="external-link" class="h-4 w-4"></i> Pay via UPI App
+          </a>
+
+          <button
+            type="submit"
+            class="w-full rounded-full bg-ink py-3.5 text-sm font-bold text-on-ink hover:bg-ink-soft shadow-md transition-transform active:scale-98"
+          >
+            <i data-lucide="check-circle-2" class="inline h-4 w-4 mr-1"></i> I&apos;ve Completed This Payment
+          </button>
+        </div>
+      </div>
+    </form>
+
+    <!-- Transparency Footer Note -->
+    <div class="mt-6 text-center text-[11px] text-text-soft leading-relaxed border-t border-paper-line pt-4">
+      100% of your contribution goes directly to {{ charity.name }}. Backseat never takes a cut or charges platform fees.
+    </div>
+  </div>
+</div>
+
+<script>
+  function selectAmount(val) {
+    const input = document.getElementById('custom-amount');
+    if (input) {
+      input.value = val;
+    }
+    document.querySelectorAll('.amount-btn').forEach(btn => {
+      if (btn.textContent.trim() === '₹' + val) {
+        btn.className = "amount-btn rounded-xl border border-marigold bg-marigold-pale/60 py-3 text-sm font-bold text-marigold-deep transition-all";
+      } else {
+        btn.className = "amount-btn rounded-xl border border-paper-line bg-white py-3 text-sm font-bold text-ink hover:border-marigold transition-all";
+      }
+    });
+  }
+</script>
 {% endblock %}

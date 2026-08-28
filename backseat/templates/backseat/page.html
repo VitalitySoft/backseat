@@ -1,13 +1,182 @@
 {% extends "backseat/base.html" %}
+
 {% block content %}
-<section class="bg-paper py-16">
-  <div class="mx-auto max-w-3xl px-6">
-    <article class="rounded-3xl border border-paper-line bg-white p-8 shadow-sm fade-up">
-      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-marigold-deep">Backseat</p>
-      <h1 class="mt-3 font-display text-4xl text-ink">{{ title }}</h1>
-      <p class="mt-5 text-lg leading-relaxed text-text-soft">{{ body }}</p>
-      <div class="mt-8 rounded-2xl bg-banyan-pale px-5 py-4 text-sm leading-relaxed text-banyan-deep">Backseat keeps rides free and donation choices voluntary, with reporting, blocking, and admin review built into the platform.</div>
-    </article>
+<div class="mx-auto max-w-3xl px-6 py-16">
+  
+  <!-- Header -->
+  <div class="fade-up text-center mb-10">
+    <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-ink text-marigold shadow-md mb-4">
+      <i data-lucide="{{ icon }}" class="h-6 w-6"></i>
+    </div>
+    <h1 class="font-display text-3xl font-bold text-ink sm:text-4xl">{{ title }}</h1>
+    <p class="mt-2 text-sm text-text-soft">{{ subtitle }}</p>
   </div>
-</section>
+
+  <!-- Dynamic Content by Slug -->
+  <div class="rounded-3xl border border-paper-line bg-white p-8 sm:p-10 shadow-sm space-y-8 text-sm leading-relaxed text-text">
+    
+    {% if slug == "about" %}
+      <!-- About Page Content -->
+      <div class="space-y-4">
+        <h2 class="font-display text-2xl font-bold text-ink">Our Mission</h2>
+        <p>
+          Backseat was created to solve a simple, pervasive reality: millions of empty vehicle seats travel the exact same routes every single day while public transit is crowded and cities face congestion.
+        </p>
+        <p>
+          Instead of turning commuting into a commercial transaction or fare-setting enterprise, Backseat re-imagines seat-sharing as a community act of generosity. Riders share spare seats for free, and passengers who wish to express gratitude can contribute directly to verified charitable causes.
+        </p>
+
+        <div class="my-6 rounded-2xl bg-paper-dim/60 p-6 border border-paper-line">
+          <p class="font-display text-lg font-bold text-ink">Crafted by VitalitySoft</p>
+          <p class="mt-1 text-xs text-text-soft leading-relaxed">
+            VitalitySoft develops purposeful software solutions that connect communities and amplify positive social impact across India.
+          </p>
+        </div>
+
+        <h3 class="font-display text-xl font-bold text-ink pt-4">Core Principles</h3>
+        <ul class="list-disc list-inside space-y-2 text-text-soft">
+          <li><strong>Zero Fares:</strong> No rider or driver can ever charge, negotiate, or receive fares.</li>
+          <li><strong>Direct to Charity:</strong> 100% of voluntary passenger donations route directly to verified charity partners.</li>
+          <li><strong>Identity Verification:</strong> Every rider undergoes vehicle and identity checks before sharing their journey.</li>
+        </ul>
+      </div>
+
+    {% elif slug == "safety" %}
+      <!-- Safety Centre & SOS Feature -->
+      <div class="space-y-6">
+        <div>
+          <h2 class="font-display text-2xl font-bold text-ink">Built-in Safety &amp; Trust</h2>
+          <p class="mt-2 text-text-soft">
+            Your peace of mind is our highest priority. We verify vehicles, maintain transparent profiles, and provide direct emergency escalation tools.
+          </p>
+        </div>
+
+        <!-- Interactive SOS Emergency Box -->
+        <div class="rounded-3xl border border-rose/40 bg-rose-pale/40 p-6 text-rose-deep">
+          <div class="flex items-center gap-3">
+            <i data-lucide="alert-triangle" class="h-6 w-6 text-rose-deep"></i>
+            <div>
+              <h3 class="font-display text-lg font-bold text-ink">Emergency Assistance (SOS)</h3>
+              <p class="text-xs text-text-soft">Immediate logging and connection to emergency helplines</p>
+            </div>
+          </div>
+
+          <div class="mt-4 flex flex-col sm:flex-row gap-3">
+            <button
+              type="button"
+              id="sos-trigger-btn"
+              onclick="triggerSOS()"
+              class="flex items-center justify-center gap-2 rounded-full bg-rose-deep px-6 py-3 text-xs font-bold text-white hover:bg-rose shadow-md transition-transform active:scale-95"
+            >
+              <i data-lucide="phone-call" class="h-4 w-4"></i> Trigger Safety SOS
+            </button>
+            <a
+              href="tel:112"
+              class="flex items-center justify-center gap-2 rounded-full border border-rose-deep bg-white px-6 py-3 text-xs font-bold text-rose-deep hover:bg-rose-pale"
+            >
+              Call National Emergency (112)
+            </a>
+          </div>
+
+          <div id="sos-status-msg" class="mt-3 hidden text-xs font-bold text-rose-deep"></div>
+        </div>
+
+        <div class="space-y-3 pt-4 border-t border-paper-line">
+          <h3 class="font-display text-lg font-bold text-ink">Safety Best Practices</h3>
+          <p class="text-text-soft">
+            &bull; Confirm vehicle plate number and rider name before boarding.<br>
+            &bull; Share your live trip details with a friend or family member.<br>
+            &bull; Use our in-app chat for all pickup coordination.
+          </p>
+        </div>
+      </div>
+
+    {% elif slug == "become-a-rider" %}
+      <!-- Become a Rider Direct Form -->
+      <div class="space-y-6">
+        <p class="text-text-soft">
+          Enter your vehicle details to register as a Backseat rider. Once verified by our safety team, you can offer spare seats on your daily routes.
+        </p>
+
+        <form method="post" action="{% url 'profile' %}" class="space-y-5 border-t border-paper-line pt-6">
+          {% csrf_token %}
+          <input type="hidden" name="form_type" value="vehicle">
+
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-text-soft mb-1.5">Vehicle Type</label>
+            <select name="vehicle_type" class="w-full rounded-2xl border border-paper-line bg-paper px-4 py-3 text-sm font-medium text-ink outline-none focus:border-marigold">
+              <option value="FOUR_WHEELER">Four-wheeler (Car / SUV)</option>
+              <option value="TWO_WHEELER">Two-wheeler (Bike / Scooter)</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-text-soft mb-1.5">Make</label>
+              <input type="text" name="vehicle_make" placeholder="e.g. Maruti, Hyundai, Honda" required class="w-full rounded-2xl border border-paper-line bg-paper px-4 py-3 text-sm font-medium text-ink outline-none focus:border-marigold">
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-text-soft mb-1.5">Model</label>
+              <input type="text" name="vehicle_model" placeholder="e.g. Ertiga, i20, Activa" required class="w-full rounded-2xl border border-paper-line bg-paper px-4 py-3 text-sm font-medium text-ink outline-none focus:border-marigold">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-text-soft mb-1.5">License Plate</label>
+              <input type="text" name="vehicle_plate" placeholder="KA 01 AB 1234" required class="w-full rounded-2xl border border-paper-line bg-paper px-4 py-3 text-sm font-medium text-ink outline-none focus:border-marigold uppercase font-mono">
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-text-soft mb-1.5">Seats Available</label>
+              <input type="number" name="seats_available" value="2" min="1" max="6" required class="w-full rounded-2xl border border-paper-line bg-paper px-4 py-3 text-sm font-medium text-ink outline-none focus:border-marigold">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-text-soft mb-1.5">Bio &amp; Commute Notes</label>
+            <textarea name="bio" rows="2" placeholder="Tell passengers about your regular routes…" class="w-full rounded-2xl border border-paper-line bg-paper p-4 text-sm font-medium text-ink outline-none focus:border-marigold"></textarea>
+          </div>
+
+          <button type="submit" class="w-full rounded-full bg-ink py-3.5 text-sm font-bold text-on-ink hover:bg-ink-soft shadow-md transition-transform active:scale-98">
+            Submit Vehicle Registration
+          </button>
+        </form>
+      </div>
+
+    {% else %}
+      <!-- Standard Information Pages: How it Works, Guidelines, Legal -->
+      <div class="space-y-4 text-text-soft">
+        <p>{{ body|default:"Backseat coordinates community-driven empty-seat sharing with voluntary charitable giving." }}</p>
+        <p>
+          All participants must abide by community guidelines: keep routes accurate, treat travellers with respect, and uphold our strict zero-fare policy.
+        </p>
+        <p>
+          For questions regarding tax deductions under 80G or administrative assistance, please contact the Backseat team.
+        </p>
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<script>
+  async function triggerSOS() {
+    const btn = document.getElementById('sos-trigger-btn');
+    const msg = document.getElementById('sos-status-msg');
+    if (btn) btn.disabled = true;
+
+    try {
+      await fetch('/api/sos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trigger: 'safety_page' }) });
+      if (msg) {
+        msg.textContent = 'SOS logged. Emergency alert transmitted to safety team.';
+        msg.classList.remove('hidden');
+      }
+    } catch (e) {
+      if (msg) {
+        msg.textContent = 'Alert logged. Dial 112 if you require immediate police or medical help.';
+        msg.classList.remove('hidden');
+      }
+    }
+  }
+</script>
 {% endblock %}

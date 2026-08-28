@@ -1,45 +1,418 @@
 {% extends "backseat/base.html" %}
+
 {% block content %}
-<section class="bg-paper py-12">
-  <div class="mx-auto max-w-6xl px-4 md:px-6">
-    <div class="mb-8">
-      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-marigold-deep">Operations</p>
-      <h1 class="font-display text-4xl font-semibold text-ink">Admin Portal</h1>
+<div class="mx-auto max-w-6xl px-6 py-12">
+  
+  <!-- Header -->
+  <div class="fade-up flex flex-wrap items-center justify-between gap-4 border-b border-paper-line pb-6">
+    <div>
+      <div class="flex items-center gap-2">
+        <span class="flex h-8 w-8 items-center justify-center rounded-full bg-marigold text-ink shadow-sm">
+          <i data-lucide="shield-alert" class="h-4 w-4"></i>
+        </span>
+        <h1 class="font-display text-3xl font-bold text-ink">Admin Portal</h1>
+      </div>
+      <p class="mt-1 text-sm text-text-soft">Platform moderation, vehicle verification, donations, and audit logging.</p>
     </div>
-    <div class="grid gap-4 md:grid-cols-5">
-      <article class="rounded-2xl border border-paper-line bg-white p-5"><b class="font-display text-3xl text-ink">{{ stats.users }}</b><p class="text-sm text-text-soft">Users</p></article>
-      <article class="rounded-2xl border border-paper-line bg-white p-5"><b class="font-display text-3xl text-ink">{{ stats.riders }}</b><p class="text-sm text-text-soft">Riders</p></article>
-      <article class="rounded-2xl border border-paper-line bg-white p-5"><b class="font-display text-3xl text-ink">{{ stats.rides }}</b><p class="text-sm text-text-soft">Rides</p></article>
-      <article class="rounded-2xl border border-paper-line bg-white p-5"><b class="font-display text-3xl text-ink">{{ stats.donations }}</b><p class="text-sm text-text-soft">Donations</p></article>
-      <article class="rounded-2xl border border-paper-line bg-white p-5"><b class="font-display text-3xl text-ink">{{ stats.reports }}</b><p class="text-sm text-text-soft">Reports</p></article>
+    <span class="rounded-full bg-ink px-4 py-1.5 text-xs font-bold text-on-ink">
+      Administrator Access
+    </span>
+  </div>
+
+  <div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-4">
+    
+    <!-- Admin Sidebar Navigation -->
+    <div class="lg:col-span-1 space-y-1 bg-white p-3 rounded-3xl border border-paper-line shadow-sm self-start">
+      <a href="?tab=overview" class="flex items-center gap-2.5 rounded-2xl px-4 py-2.5 text-xs font-bold transition-colors {% if tab == 'overview' %}bg-ink text-on-ink shadow-sm{% else %}text-text-soft hover:bg-paper-dim hover:text-ink{% endif %}">
+        <i data-lucide="layout-grid" class="h-4 w-4"></i> Overview
+      </a>
+      <a href="?tab=riders" class="flex items-center justify-between rounded-2xl px-4 py-2.5 text-xs font-bold transition-colors {% if tab == 'riders' %}bg-ink text-on-ink shadow-sm{% else %}text-text-soft hover:bg-paper-dim hover:text-ink{% endif %}">
+        <span class="flex items-center gap-2.5"><i data-lucide="bike" class="h-4 w-4"></i> Riders &amp; Verification</span>
+        {% if stats.unverified_riders > 0 %}
+          <span class="rounded-full bg-rose-deep px-1.5 py-0.5 text-[9px] text-white font-bold">{{ stats.unverified_riders }}</span>
+        {% endif %}
+      </a>
+      <a href="?tab=users" class="flex items-center gap-2.5 rounded-2xl px-4 py-2.5 text-xs font-bold transition-colors {% if tab == 'users' %}bg-ink text-on-ink shadow-sm{% else %}text-text-soft hover:bg-paper-dim hover:text-ink{% endif %}">
+        <i data-lucide="users" class="h-4 w-4"></i> Users Management
+      </a>
+      <a href="?tab=rides" class="flex items-center gap-2.5 rounded-2xl px-4 py-2.5 text-xs font-bold transition-colors {% if tab == 'rides' %}bg-ink text-on-ink shadow-sm{% else %}text-text-soft hover:bg-paper-dim hover:text-ink{% endif %}">
+        <i data-lucide="car" class="h-4 w-4"></i> Ride Offers
+      </a>
+      <a href="?tab=donations" class="flex items-center gap-2.5 rounded-2xl px-4 py-2.5 text-xs font-bold transition-colors {% if tab == 'donations' %}bg-ink text-on-ink shadow-sm{% else %}text-text-soft hover:bg-paper-dim hover:text-ink{% endif %}">
+        <i data-lucide="heart" class="h-4 w-4"></i> Donations &amp; Refunds
+      </a>
+      <a href="?tab=charities" class="flex items-center gap-2.5 rounded-2xl px-4 py-2.5 text-xs font-bold transition-colors {% if tab == 'charities' %}bg-ink text-on-ink shadow-sm{% else %}text-text-soft hover:bg-paper-dim hover:text-ink{% endif %}">
+        <i data-lucide="building" class="h-4 w-4"></i> Charities &amp; UPI
+      </a>
+      <a href="?tab=fraud" class="flex items-center gap-2.5 rounded-2xl px-4 py-2.5 text-xs font-bold transition-colors {% if tab == 'fraud' %}bg-ink text-on-ink shadow-sm{% else %}text-text-soft hover:bg-paper-dim hover:text-ink{% endif %}">
+        <i data-lucide="shield-alert" class="h-4 w-4"></i> Fraud &amp; Risk
+      </a>
+      <a href="?tab=reports" class="flex items-center justify-between rounded-2xl px-4 py-2.5 text-xs font-bold transition-colors {% if tab == 'reports' %}bg-ink text-on-ink shadow-sm{% else %}text-text-soft hover:bg-paper-dim hover:text-ink{% endif %}">
+        <span class="flex items-center gap-2.5"><i data-lucide="flag" class="h-4 w-4"></i> Safety Reports</span>
+        {% if stats.open_reports > 0 %}
+          <span class="rounded-full bg-marigold-deep px-1.5 py-0.5 text-[9px] text-white font-bold">{{ stats.open_reports }}</span>
+        {% endif %}
+      </a>
+      <a href="?tab=audit" class="flex items-center gap-2.5 rounded-2xl px-4 py-2.5 text-xs font-bold transition-colors {% if tab == 'audit' %}bg-ink text-on-ink shadow-sm{% else %}text-text-soft hover:bg-paper-dim hover:text-ink{% endif %}">
+        <i data-lucide="file-text" class="h-4 w-4"></i> Audit Trail
+      </a>
     </div>
 
-    <div class="mt-8 grid gap-6">
-      <section class="rounded-2xl border border-paper-line bg-white p-6">
-        <h2 class="font-display text-2xl font-semibold text-ink">Users</h2>
-        <div class="mt-4 overflow-x-auto"><table class="w-full text-left text-sm"><tr class="border-b border-paper-line text-text-soft"><th class="py-3">Name</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr>{% for u in users %}<tr class="border-b border-paper-line"><td class="py-3">{{ u.user.get_full_name|default:u.user.username }}</td><td>{{ u.user.email }}</td><td>{{ u.role }}</td><td>{% if u.is_blocked %}Blocked{% else %}Active{% endif %}</td><td><form method="post" action="{% url 'admin_action' 'user' u.id %}">{% csrf_token %}<button class="rounded-full border border-paper-line px-3 py-1.5 text-xs font-semibold text-ink">{% if u.is_blocked %}Unblock{% else %}Block{% endif %}</button></form></td></tr>{% endfor %}</table></div>
-      </section>
+    <!-- Main Content Area -->
+    <div class="lg:col-span-3">
+      
+      <!-- 1. OVERVIEW TAB -->
+      {% if tab == "overview" %}
+        <div class="space-y-6">
+          <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div class="rounded-2xl border border-paper-line bg-white p-5 shadow-sm">
+              <p class="text-xs font-bold uppercase text-text-soft">Total Users</p>
+              <p class="mt-2 font-display text-3xl font-bold text-ink">{{ stats.users_count }}</p>
+            </div>
+            <div class="rounded-2xl border border-paper-line bg-white p-5 shadow-sm">
+              <p class="text-xs font-bold uppercase text-text-soft">Riders</p>
+              <p class="mt-2 font-display text-3xl font-bold text-ink">{{ stats.riders_count }}</p>
+            </div>
+            <div class="rounded-2xl border border-paper-line bg-white p-5 shadow-sm">
+              <p class="text-xs font-bold uppercase text-text-soft">Total Rides</p>
+              <p class="mt-2 font-display text-3xl font-bold text-ink">{{ stats.rides_count }}</p>
+            </div>
+            <div class="rounded-2xl border border-paper-line bg-white p-5 shadow-sm">
+              <p class="text-xs font-bold uppercase text-text-soft">Total Raised</p>
+              <p class="mt-2 font-display text-3xl font-bold text-ink">₹{{ stats.total_donations|floatformat:0 }}</p>
+            </div>
+          </div>
 
-      <section class="rounded-2xl border border-paper-line bg-white p-6">
-        <h2 class="font-display text-2xl font-semibold text-ink">Rider Verification</h2>
-        <div class="mt-4 grid gap-3">{% for r in riders %}<div class="flex flex-col gap-3 rounded-xl bg-paper-dim p-4 md:flex-row md:items-center md:justify-between"><div><b class="text-ink">{{ r.user_profile.user.get_full_name|default:r.user_profile.user.email }}</b><p class="text-sm text-text-soft">{{ r.vehicle_make }} {{ r.vehicle_model }} · {{ r.vehicle_plate }} · {% if r.is_vehicle_verified %}Verified{% else %}Pending{% endif %}</p></div><form method="post" action="{% url 'admin_action' 'rider' r.id %}">{% csrf_token %}<button class="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-on-ink">Toggle verify</button></form></div>{% endfor %}</div>
-      </section>
+          {% if stats.unverified_riders > 0 %}
+            <div class="flex items-center justify-between rounded-3xl border border-rose/30 bg-rose-pale/40 p-6">
+              <div>
+                <h3 class="font-display text-base font-bold text-ink">{{ stats.unverified_riders }} Rider(s) Awaiting Verification</h3>
+                <p class="text-xs text-text-soft mt-0.5">Approve their vehicle details to enable QR and seat sharing.</p>
+              </div>
+              <a href="?tab=riders" class="rounded-full bg-ink px-4 py-2 text-xs font-bold text-on-ink hover:bg-ink-soft">
+                Review &rarr;
+              </a>
+            </div>
+          {% endif %}
+        </div>
 
-      <section class="rounded-2xl border border-paper-line bg-white p-6">
-        <h2 class="font-display text-2xl font-semibold text-ink">Rides</h2>
-        <div class="mt-4 grid gap-3">{% for ride in rides %}<div class="flex flex-col gap-3 rounded-xl bg-paper-dim p-4 md:flex-row md:items-center md:justify-between"><div><b class="text-ink">{{ ride.start_location }} to {{ ride.destination }}</b><p class="text-sm text-text-soft">{{ ride.rider.user_profile.user.get_full_name }} · {{ ride.status }}</p></div><form method="post" action="{% url 'admin_action' 'ride' ride.id %}" class="flex gap-2">{% csrf_token %}<button name="status" value="ACTIVE" class="rounded-full border border-paper-line bg-white px-3 py-1.5 text-xs font-semibold">Active</button><button name="status" value="COMPLETED" class="rounded-full bg-banyan px-3 py-1.5 text-xs font-semibold text-white">Complete</button><button name="status" value="CANCELLED" class="rounded-full bg-rose px-3 py-1.5 text-xs font-semibold text-white">Cancel</button></form></div>{% endfor %}</div>
-      </section>
+      <!-- 2. RIDERS & VERIFICATION TAB -->
+      {% elif tab == "riders" %}
+        <div class="rounded-3xl border border-paper-line bg-white p-6 shadow-sm">
+          <h2 class="font-display text-xl font-bold text-ink mb-4">Riders &amp; Vehicle Verification</h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-paper-dim/60 text-xs font-bold uppercase text-text-soft">
+                <tr>
+                  <th class="px-4 py-3">Rider Name</th>
+                  <th class="px-4 py-3">Vehicle Details</th>
+                  <th class="px-4 py-3">Plate #</th>
+                  <th class="px-4 py-3">Status</th>
+                  <th class="px-4 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-paper-line">
+                {% for r in riders %}
+                  <tr>
+                    <td class="px-4 py-3 font-semibold text-ink">
+                      {{ r.user_profile.user.get_full_name|default:r.user_profile.user.username }}
+                    </td>
+                    <td class="px-4 py-3 text-xs text-text-soft">
+                      {{ r.vehicle_make }} {{ r.vehicle_model }} ({{ r.vehicle_type }})
+                    </td>
+                    <td class="px-4 py-3 font-mono text-xs font-bold text-ink">
+                      {{ r.vehicle_plate }}
+                    </td>
+                    <td class="px-4 py-3">
+                      {% if r.is_vehicle_verified %}
+                        <span class="rounded-full bg-banyan-pale px-2.5 py-0.5 text-[10px] font-bold text-banyan-deep">Verified</span>
+                      {% else %}
+                        <span class="rounded-full bg-rose-pale px-2.5 py-0.5 text-[10px] font-bold text-rose-deep">Pending</span>
+                      {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                      <form method="post" action="{% url 'admin_action' 'rider' r.id %}" class="inline-block">
+                        {% csrf_token %}
+                        <input type="hidden" name="tab" value="riders">
+                        <input type="hidden" name="action_type" value="toggle_verify">
+                        <button type="submit" class="rounded-full border border-paper-line px-3 py-1 text-xs font-bold hover:border-marigold">
+                          {% if r.is_vehicle_verified %}Revoke{% else %}Verify Vehicle{% endif %}
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
-      <section class="rounded-2xl border border-paper-line bg-white p-6">
-        <h2 class="font-display text-2xl font-semibold text-ink">Donations</h2>
-        <div class="mt-4 overflow-x-auto"><table class="w-full text-left text-sm"><tr class="border-b border-paper-line text-text-soft"><th class="py-3">Ref</th><th>Amount</th><th>Charity</th><th>Status</th><th></th></tr>{% for d in donations %}<tr class="border-b border-paper-line"><td class="py-3">{{ d.donation_ref }}</td><td>INR {{ d.amount|floatformat:0 }}</td><td>{{ d.charity.name }}</td><td>{{ d.status }}</td><td><form method="post" action="{% url 'admin_action' 'donation' d.id %}">{% csrf_token %}<button name="status" value="SUCCESS" class="rounded-full bg-banyan px-3 py-1.5 text-xs font-semibold text-white">Mark success</button></form></td></tr>{% endfor %}</table></div>
-      </section>
+      <!-- 3. USERS MANAGEMENT TAB -->
+      {% elif tab == "users" %}
+        <div class="rounded-3xl border border-paper-line bg-white p-6 shadow-sm">
+          <h2 class="font-display text-xl font-bold text-ink mb-4">User Accounts</h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-paper-dim/60 text-xs font-bold uppercase text-text-soft">
+                <tr>
+                  <th class="px-4 py-3">User</th>
+                  <th class="px-4 py-3">Role</th>
+                  <th class="px-4 py-3">Status</th>
+                  <th class="px-4 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-paper-line">
+                {% for u in users %}
+                  <tr>
+                    <td class="px-4 py-3">
+                      <p class="font-semibold text-ink">{{ u.user.get_full_name|default:u.user.username }}</p>
+                      <p class="text-xs text-text-soft">{{ u.user.email }}</p>
+                    </td>
+                    <td class="px-4 py-3 font-mono text-xs font-bold">{{ u.role }}</td>
+                    <td class="px-4 py-3">
+                      {% if u.is_blocked %}
+                        <span class="rounded-full bg-rose-pale px-2.5 py-0.5 text-[10px] font-bold text-rose-deep">Blocked</span>
+                      {% else %}
+                        <span class="rounded-full bg-banyan-pale px-2.5 py-0.5 text-[10px] font-bold text-banyan-deep">Active</span>
+                      {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                      {% if u.role != "ADMIN" %}
+                        <form method="post" action="{% url 'admin_action' 'user' u.id %}" class="inline-block">
+                          {% csrf_token %}
+                          <input type="hidden" name="tab" value="users">
+                          <input type="hidden" name="action_type" value="toggle_block">
+                          <button type="submit" class="rounded-full px-3 py-1 text-xs font-bold {% if u.is_blocked %}bg-banyan-pale text-banyan-deep{% else %}bg-rose-pale text-rose-deep{% endif %}">
+                            {% if u.is_blocked %}Unblock{% else %}Block User{% endif %}
+                          </button>
+                        </form>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
-      <section class="rounded-2xl border border-paper-line bg-white p-6">
-        <h2 class="font-display text-2xl font-semibold text-ink">Reports</h2>
-        <div class="mt-4 grid gap-3">{% for report in reports %}<div class="flex flex-col gap-3 rounded-xl bg-paper-dim p-4 md:flex-row md:items-center md:justify-between"><div><b class="text-ink">{{ report.reason }}</b><p class="text-sm text-text-soft">{{ report.reporter.user.email }} reported {{ report.reported.user.email }} · {{ report.status }}</p></div><form method="post" action="{% url 'admin_action' 'report' report.id %}" class="flex gap-2">{% csrf_token %}<button name="status" value="REVIEWED" class="rounded-full border border-paper-line bg-white px-3 py-1.5 text-xs font-semibold">Reviewed</button><button name="status" value="RESOLVED" class="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-on-ink">Resolved</button></form></div>{% empty %}<p class="text-sm text-text-soft">No reports yet.</p>{% endfor %}</div>
-      </section>
+      <!-- 4. RIDES TAB -->
+      {% elif tab == "rides" %}
+        <div class="rounded-3xl border border-paper-line bg-white p-6 shadow-sm">
+          <h2 class="font-display text-xl font-bold text-ink mb-4">All Ride Offers</h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-paper-dim/60 text-xs font-bold uppercase text-text-soft">
+                <tr>
+                  <th class="px-4 py-3">Route</th>
+                  <th class="px-4 py-3">Rider</th>
+                  <th class="px-4 py-3">Status</th>
+                  <th class="px-4 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-paper-line">
+                {% for ride in rides %}
+                  <tr>
+                    <td class="px-4 py-3 font-semibold text-ink">
+                      {{ ride.start_location }} &rarr; {{ ride.destination }}
+                    </td>
+                    <td class="px-4 py-3 text-xs text-text-soft">
+                      {{ ride.rider.user_profile.user.get_full_name|default:ride.rider.user_profile.user.username }}
+                    </td>
+                    <td class="px-4 py-3">
+                      <span class="rounded-full px-2.5 py-0.5 text-[10px] font-bold {% if ride.status == 'ACTIVE' %}bg-banyan-pale text-banyan-deep{% else %}bg-paper-dim text-text-soft{% endif %}">
+                        {{ ride.status }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                      {% if ride.status == "ACTIVE" %}
+                        <form method="post" action="{% url 'admin_action' 'ride' ride.id %}">
+                          {% csrf_token %}
+                          <input type="hidden" name="tab" value="rides">
+                          <input type="hidden" name="action_type" value="cancel">
+                          <button type="submit" class="rounded-full bg-rose-pale px-3 py-1 text-xs font-bold text-rose-deep">
+                            Cancel Ride
+                          </button>
+                        </form>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      <!-- 5. DONATIONS TAB -->
+      {% elif tab == "donations" %}
+        <div class="rounded-3xl border border-paper-line bg-white p-6 shadow-sm">
+          <h2 class="font-display text-xl font-bold text-ink mb-4">Donation Records</h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-paper-dim/60 text-xs font-bold uppercase text-text-soft">
+                <tr>
+                  <th class="px-4 py-3">Ref</th>
+                  <th class="px-4 py-3">Charity</th>
+                  <th class="px-4 py-3">Amount</th>
+                  <th class="px-4 py-3">Status</th>
+                  <th class="px-4 py-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-paper-line">
+                {% for d in donations %}
+                  <tr>
+                    <td class="px-4 py-3 font-mono text-xs font-semibold">{{ d.donation_ref }}</td>
+                    <td class="px-4 py-3 text-xs font-medium text-ink">{{ d.charity.name }}</td>
+                    <td class="px-4 py-3 font-display font-bold text-ink">₹{{ d.amount|floatformat:0 }}</td>
+                    <td class="px-4 py-3">
+                      <span class="rounded-full px-2.5 py-0.5 text-[10px] font-bold {% if d.status == 'SUCCESS' %}bg-banyan-pale text-banyan-deep{% elif d.status == 'REFUNDED' %}bg-rose-pale text-rose-deep{% else %}bg-marigold-pale text-marigold-deep{% endif %}">
+                        {{ d.status }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                      {% if d.status == "SUCCESS" %}
+                        <form method="post" action="{% url 'admin_action' 'donation' d.id %}">
+                          {% csrf_token %}
+                          <input type="hidden" name="tab" value="donations">
+                          <input type="hidden" name="action_type" value="refund">
+                          <button type="submit" class="rounded-full border border-paper-line px-3 py-1 text-xs font-bold text-rose-deep hover:bg-rose-pale">
+                            Refund
+                          </button>
+                        </form>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      <!-- 6. CHARITIES TAB -->
+      {% elif tab == "charities" %}
+        <div class="space-y-6">
+          {% for c in charities %}
+            <div class="rounded-3xl border border-paper-line bg-white p-6 shadow-sm">
+              <h3 class="font-display text-lg font-bold text-ink mb-4">Edit Charity: {{ c.name }}</h3>
+              <form method="post" action="{% url 'admin_action' 'charity' c.id %}" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="tab" value="charities">
+
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-bold uppercase text-text-soft mb-1">Charity Name</label>
+                    <input type="text" name="name" value="{{ c.name }}" required class="w-full rounded-xl border border-paper-line bg-paper px-3 py-2 text-sm outline-none">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold uppercase text-text-soft mb-1">Registration #</label>
+                    <input type="text" name="registration_number" value="{{ c.registration_number }}" class="w-full rounded-xl border border-paper-line bg-paper px-3 py-2 text-sm outline-none">
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-bold uppercase text-text-soft mb-1">Beneficiary UPI VPA</label>
+                    <input type="text" name="beneficiary_upi_vpa" value="{{ c.beneficiary_upi_vpa }}" required class="w-full rounded-xl border border-paper-line bg-paper px-3 py-2 text-sm outline-none font-mono">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold uppercase text-text-soft mb-1">Payee Name</label>
+                    <input type="text" name="beneficiary_name" value="{{ c.beneficiary_name }}" required class="w-full rounded-xl border border-paper-line bg-paper px-3 py-2 text-sm outline-none">
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold uppercase text-text-soft mb-1">Description</label>
+                  <textarea name="description" rows="2" class="w-full rounded-xl border border-paper-line bg-paper p-3 text-sm outline-none">{{ c.description }}</textarea>
+                </div>
+
+                <button type="submit" class="rounded-full bg-ink px-5 py-2 text-xs font-bold text-on-ink hover:bg-ink-soft">
+                  Save Charity Configuration
+                </button>
+              </form>
+            </div>
+          {% endfor %}
+        </div>
+
+      <!-- 7. FRAUD TAB -->
+      {% elif tab == "fraud" %}
+        <div class="rounded-3xl border border-paper-line bg-white p-6 shadow-sm">
+          <h2 class="font-display text-xl font-bold text-ink mb-4">Fraud &amp; High-Value Signals</h2>
+          <div class="space-y-3">
+            {% if suspicious_donations %}
+              {% for s in suspicious_donations %}
+                <div class="flex items-center justify-between rounded-2xl border border-marigold/40 bg-marigold-pale/20 p-4">
+                  <div>
+                    <span class="rounded-full bg-marigold px-2.5 py-0.5 text-[10px] font-bold text-ink">High Value (>₹5k)</span>
+                    <p class="font-display text-base font-bold text-ink mt-1">₹{{ s.amount|floatformat:0 }} via {{ s.donor_display_name_snapshot }}</p>
+                    <p class="text-xs text-text-soft">Rider: {{ s.rider.user_profile.user.get_full_name }} &bull; Ref: {{ s.donation_ref }}</p>
+                  </div>
+                  <form method="post" action="{% url 'admin_action' 'donation' s.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="tab" value="fraud">
+                    <input type="hidden" name="action_type" value="refund">
+                    <button type="submit" class="rounded-full bg-rose-pale px-3 py-1 text-xs font-bold text-rose-deep">
+                      Refund &amp; Flag
+                    </button>
+                  </form>
+                </div>
+              {% endfor %}
+            {% else %}
+              <p class="text-xs text-text-soft py-4">No anomalous or high-risk donations detected.</p>
+            {% endif %}
+          </div>
+        </div>
+
+      <!-- 8. REPORTS TAB -->
+      {% elif tab == "reports" %}
+        <div class="rounded-3xl border border-paper-line bg-white p-6 shadow-sm">
+          <h2 class="font-display text-xl font-bold text-ink mb-4">Safety &amp; Community Reports</h2>
+          <div class="space-y-3">
+            {% if reports %}
+              {% for rep in reports %}
+                <div class="rounded-2xl border border-paper-line p-4">
+                  <div class="flex items-center justify-between">
+                    <span class="font-semibold text-ink">{{ rep.reason }}</span>
+                    <span class="rounded-full bg-rose-pale px-2.5 py-0.5 text-[10px] font-bold text-rose-deep">{{ rep.status }}</span>
+                  </div>
+                  <p class="text-xs text-text-soft mt-1">Filed by {{ rep.reporter.user.get_full_name }} against {{ rep.reported.user.get_full_name }}</p>
+                  {% if rep.details %}<p class="text-xs italic text-text mt-2">&ldquo;{{ rep.details }}&rdquo;</p>{% endif %}
+                </div>
+              {% endfor %}
+            {% else %}
+              <p class="text-xs text-text-soft py-4">No open safety reports.</p>
+            {% endif %}
+          </div>
+        </div>
+
+      <!-- 9. AUDIT LOG TAB -->
+      {% elif tab == "audit" %}
+        <div class="rounded-3xl border border-paper-line bg-white p-6 shadow-sm">
+          <h2 class="font-display text-xl font-bold text-ink mb-4">Immutable Audit Trail</h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-paper-dim/60 text-xs font-bold uppercase text-text-soft">
+                <tr>
+                  <th class="px-4 py-3">Timestamp</th>
+                  <th class="px-4 py-3">Actor</th>
+                  <th class="px-4 py-3">Action</th>
+                  <th class="px-4 py-3">Target</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-paper-line">
+                {% for a in audit_logs %}
+                  <tr>
+                    <td class="px-4 py-2.5 text-xs text-text-soft">{{ a.created_at|date:"j M H:i:s" }}</td>
+                    <td class="px-4 py-2.5 text-xs font-semibold text-ink">{{ a.actor.user.get_full_name|default:"System" }}</td>
+                    <td class="px-4 py-2.5 text-xs text-ink">{{ a.action }}</td>
+                    <td class="px-4 py-2.5 font-mono text-[11px] text-text-soft">{{ a.target_type }} #{{ a.target_id }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {% endif %}
+
     </div>
   </div>
-</section>
+</div>
 {% endblock %}

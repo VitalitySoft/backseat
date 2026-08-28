@@ -1,20 +1,214 @@
 {% extends "backseat/base.html" %}
+
 {% block content %}
-<section class="mx-auto max-w-3xl px-6 py-16">
-  <article class="ticket-shell ticket-notch fade-up">
-    <div class="ticket-main">
-      <span class="status-pill status-active">{{ ride.status }}</span>
-      <h1 class="mt-4 font-display text-3xl text-ink">{{ ride.start_location }} to {{ ride.destination }}</h1>
-      <p class="mt-3 text-text-soft">{{ ride.notes|default:"No notes provided." }}</p>
-      <div class="mt-5 grid gap-3 text-sm text-text-soft sm:grid-cols-3"><span>{{ ride.vehicle_type }}</span><span>{{ ride.seats_available }} seat(s)</span><span>{{ ride.departure_at|default:"Flexible timing" }}</span></div>
-      <div class="mt-6 rounded-2xl bg-banyan-pale px-4 py-3 text-sm text-banyan-deep">Backseat rides are free. Any donation after the ride is voluntary and goes to charity.</div>
+<div class="mx-auto max-w-4xl px-6 py-16">
+  <a href="{% url 'find_a_ride' %}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-text-soft hover:text-ink mb-6">
+    <i data-lucide="arrow-left" class="h-4 w-4"></i> Back to rides
+  </a>
+
+  <div class="grid gap-8 lg:grid-cols-3">
+    <!-- Left 2 Cols: Ride Details Ticket -->
+    <div class="lg:col-span-2 space-y-6">
+      
+      <!-- Main Ride Ticket -->
+      <article class="ticket-shell">
+        <div class="ticket-main space-y-6">
+          <div>
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-paper-dim px-3 py-1 text-xs font-bold text-ink">
+              {% if ride.vehicle_type == "TWO_WHEELER" %}
+                <i data-lucide="bike" class="h-3.5 w-3.5"></i> Two-wheeler
+              {% else %}
+                <i data-lucide="car" class="h-3.5 w-3.5"></i> Four-wheeler
+              {% endif %}
+            </span>
+            <h1 class="mt-3 font-display text-2xl font-bold text-ink sm:text-3xl">
+              {{ ride.start_location }} &rarr; {{ ride.destination }}
+            </h1>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 border-y border-paper-line py-4 text-sm">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-text-soft font-semibold">Departure Time</p>
+              <p class="mt-1 font-semibold text-ink">
+                {% if ride.departure_at %}
+                  {{ ride.departure_at|date:"l, j F Y" }} &bull; {{ ride.departure_at|date:"g:i A" }}
+                {% else %}
+                  Flexible timing
+                {% endif %}
+              </p>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-wider text-text-soft font-semibold">Available Seats</p>
+              <p class="mt-1 font-semibold text-ink">{{ ride.seats_available }} seat(s)</p>
+            </div>
+          </div>
+
+          {% if ride.notes %}
+            <div>
+              <p class="text-xs uppercase tracking-wider text-text-soft font-semibold">Rider Notes</p>
+              <p class="mt-1 text-sm italic text-text-soft leading-relaxed">&ldquo;{{ ride.notes }}&rdquo;</p>
+            </div>
+          {% endif %}
+
+          <!-- Vehicle Specs -->
+          <div class="rounded-2xl bg-paper-dim/60 p-4 text-sm">
+            <p class="font-semibold text-ink">Vehicle Information</p>
+            <p class="mt-1 text-xs text-text-soft">
+              {{ ride.rider.vehicle_make }} {{ ride.rider.vehicle_model }} &bull; Plate: <span class="font-mono">{{ ride.rider.vehicle_plate }}</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Ticket Side Action -->
+        <div class="ticket-side">
+          <div>
+            <p class="text-xs uppercase tracking-wider font-semibold text-text-soft">Offered by</p>
+            <p class="mt-1 font-display text-lg font-bold text-ink">
+              {{ ride.rider.user_profile.user.get_full_name|default:ride.rider.user_profile.user.username }}
+            </p>
+            {% if ride.rider.is_vehicle_verified %}
+              <p class="mt-1 flex items-center gap-1 text-xs font-semibold text-banyan-deep">
+                <i data-lucide="shield-check" class="h-3.5 w-3.5"></i> Verified Rider
+              </p>
+            {% endif %}
+          </div>
+
+          <div class="mt-6">
+            {% if is_owner %}
+              <div class="rounded-2xl border border-paper-line bg-paper-dim/80 p-3 text-center text-xs font-semibold text-text-soft">
+                This is your ride offer
+              </div>
+            {% elif my_join %}
+              {% if my_join.status == "REQUESTED" %}
+                <div class="rounded-2xl bg-marigold-pale px-4 py-3 text-center text-xs font-bold text-marigold-deep">
+                  Request sent — awaiting rider confirmation
+                </div>
+              {% elif my_join.status == "ACCEPTED" %}
+                <div class="rounded-2xl bg-banyan-pale px-4 py-3 text-center text-xs font-bold text-banyan-deep">
+                  Accepted — you&apos;re in!
+                </div>
+              {% elif my_join.status == "COMPLETED" %}
+                <div class="space-y-2">
+                  <div class="rounded-2xl bg-paper-dim px-4 py-3 text-center text-xs font-bold text-text-soft">
+                    Ride completed
+                  </div>
+                  <a href="{% url 'donate' ride.rider.charity_code %}" class="block rounded-full bg-marigold px-4 py-2.5 text-center text-xs font-bold text-ink hover:bg-marigold-deep">
+                    Support rider&apos;s charity &rarr;
+                  </a>
+                </div>
+              {% elif my_join.status == "DECLINED" %}
+                <form method="post" class="space-y-2">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="join">
+                  <div class="rounded-2xl bg-rose-pale px-3 py-2 text-center text-xs font-bold text-rose-deep">
+                    Declined by rider
+                  </div>
+                  <button type="submit" class="w-full rounded-full bg-ink px-4 py-2.5 text-xs font-bold text-on-ink hover:bg-ink-soft">
+                    Request Again
+                  </button>
+                </form>
+              {% endif %}
+            {% else %}
+              <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="join">
+                <button type="submit" class="w-full rounded-full bg-ink px-6 py-3.5 text-sm font-bold text-on-ink hover:bg-ink-soft shadow-md transition-transform active:scale-95">
+                  Request to Join
+                </button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      </article>
+
+      <!-- In-Ride Chat Panel (If Requested or Accepted) -->
+      {% if my_join %}
+        <div class="rounded-3xl border border-paper-line bg-white p-6 shadow-sm">
+          <div class="flex items-center justify-between border-b border-paper-line pb-4">
+            <div class="flex items-center gap-2">
+              <i data-lucide="message-square" class="h-5 w-5 text-marigold-deep"></i>
+              <h2 class="font-display text-lg font-bold text-ink">Trip Coordination Chat</h2>
+            </div>
+            <span class="text-xs text-text-soft">Coordinate meeting spot &amp; timing</span>
+          </div>
+
+          <!-- Message History -->
+          <div class="my-4 max-h-72 space-y-3 overflow-y-auto pr-2">
+            {% if chat_messages %}
+              {% for msg in chat_messages %}
+                <div class="flex {% if msg.sender_id == request.user.profile.id %}justify-end{% else %}justify-start{% endif %}">
+                  <div class="max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed {% if msg.sender_id == request.user.profile.id %}bg-ink text-on-ink{% else %}bg-paper-dim text-ink border border-paper-line{% endif %}">
+                    <p class="text-[10px] font-bold opacity-75 mb-0.5">{{ msg.sender.user.get_full_name|default:msg.sender.user.username }}</p>
+                    <p>{{ msg.body }}</p>
+                    <p class="mt-1 text-[9px] opacity-60 text-right">{{ msg.created_at|date:"g:i A" }}</p>
+                  </div>
+                </div>
+              {% endfor %}
+            {% else %}
+              <p class="py-8 text-center text-xs text-text-soft">No messages yet. Say hello to coordinate the pickup!</p>
+            {% endif %}
+          </div>
+
+          <!-- Send Message Form -->
+          <form method="post" class="flex gap-2">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="message">
+            <input
+              type="text"
+              name="body"
+              placeholder="Type your message…"
+              required
+              class="flex-1 rounded-full border border-paper-line bg-paper px-4 py-2.5 text-sm outline-none focus:border-marigold focus:ring-2 focus:ring-marigold/20"
+            >
+            <button type="submit" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-marigold text-ink hover:bg-marigold-deep shadow-md">
+              <i data-lucide="send" class="h-4 w-4"></i>
+            </button>
+          </form>
+        </div>
+      {% endif %}
+
     </div>
-    <aside class="ticket-side">
-      <p class="text-xs uppercase tracking-wide text-text-soft">Rider</p>
-      <a class="mt-1 block font-display text-xl text-ink hover:text-marigold-deep" href="{% url 'rider_profile' ride.rider.id %}">{{ ride.rider.user_profile.user.get_full_name }}</a>
-      <p class="mt-2 text-sm text-text-soft">{{ ride.rider.vehicle_make }} {{ ride.rider.vehicle_model }}</p>
-      <form method="post" class="mt-6">{% csrf_token %}<button class="w-full rounded-full bg-marigold px-5 py-3 text-sm font-semibold text-ink">Request this ride</button></form>
-    </aside>
-  </article>
-</section>
+
+    <!-- Right Col: Rider Profile & Charity Card -->
+    <div class="space-y-6">
+      
+      <!-- Rider Card -->
+      <div class="rounded-3xl border border-paper-line bg-white p-6 shadow-sm">
+        <div class="flex items-center gap-3">
+          <span class="flex h-12 w-12 items-center justify-center rounded-full bg-ink text-base font-bold text-on-ink shadow-md">
+            {{ ride.rider.user_profile.user.first_name|default:"R"|slice:":1"|upper }}
+          </span>
+          <div>
+            <h3 class="font-display text-base font-bold text-ink">
+              {{ ride.rider.user_profile.user.get_full_name|default:ride.rider.user_profile.user.username }}
+            </h3>
+            <p class="text-xs text-text-soft">Member since {{ ride.rider.member_since|date:"F Y" }}</p>
+          </div>
+        </div>
+
+        {% if ride.rider.bio %}
+          <p class="mt-4 text-xs leading-relaxed text-text-soft italic">&ldquo;{{ ride.rider.bio }}&rdquo;</p>
+        {% endif %}
+
+        <div class="mt-5 border-t border-paper-line pt-4">
+          <a href="{% url 'rider_profile' ride.rider.id %}" class="inline-flex items-center gap-1 text-xs font-semibold text-marigold-deep hover:underline">
+            View rider public profile &rarr;
+          </a>
+        </div>
+      </div>
+
+      <!-- Free Ride & Charity Policy Box -->
+      <div class="rounded-3xl border border-banyan/30 bg-banyan-pale p-6 text-banyan-deep">
+        <div class="flex items-center gap-2">
+          <i data-lucide="heart" class="h-5 w-5 text-banyan-deep"></i>
+          <h3 class="font-display text-sm font-bold">100% Free Journey</h3>
+        </div>
+        <p class="mt-2 text-xs leading-relaxed">
+          Backseat rides are always free. Passengers are never required to pay a fare. After travelling, you can choose to make a voluntary contribution to {{ charity.name|default:"our verified charity partners" }}.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</div>
 {% endblock %}

@@ -1,18 +1,267 @@
 {% extends "backseat/base.html" %}
+
 {% block content %}
-<section class="bg-paper py-12">
-  <div class="mx-auto max-w-6xl px-4 md:px-6">
-    <div class="rounded-3xl bg-ink px-6 py-10 text-on-ink md:px-10">
-      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-marigold-pale">Member dashboard</p>
-      <h1 class="mt-3 font-display text-4xl font-semibold">Welcome, {{ request.user.get_full_name|default:request.user.email }}</h1>
-      <p class="mt-3 max-w-2xl text-on-ink-soft">Manage ride offers, trip requests, charity donations, rider QR, and profile details from one place.</p>
+<div class="mx-auto max-w-5xl px-6 py-16">
+  
+  {% if not is_rider %}
+    <!-- ========================================== -->
+    <!-- PASSENGER DASHBOARD VIEW                   -->
+    <!-- ========================================== -->
+    <div class="fade-up">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 class="font-display text-3xl font-bold text-ink">
+            Welcome, {{ request.user.first_name|default:request.user.username }}
+          </h1>
+          <p class="mt-1 text-text-soft">Here&apos;s a summary of your Backseat journeys.</p>
+        </div>
+        <a href="{% url 'find_a_ride' %}" class="inline-flex items-center gap-1.5 rounded-full bg-ink px-5 py-2.5 text-sm font-bold text-on-ink hover:bg-ink-soft shadow-md">
+          <i data-lucide="search" class="h-4 w-4"></i> Find a Ride
+        </a>
+      </div>
+
+      <!-- Become a Rider Callout Card -->
+      <div class="mt-8 rounded-3xl bg-gradient-to-r from-ink via-ink to-ink-soft p-8 text-on-ink shadow-xl shadow-ink/10">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+          <div>
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-marigold/20 px-3 py-1 text-xs font-bold text-marigold">
+              <i data-lucide="bike" class="h-3.5 w-3.5"></i> Drive &amp; Share
+            </span>
+            <h2 class="mt-3 font-display text-2xl font-bold text-on-ink">Do you travel alone on daily commutes?</h2>
+            <p class="mt-2 text-sm text-on-ink-soft max-w-lg leading-relaxed">
+              Register your vehicle to share spare seats with verified community members. It&apos;s 100% free and turns your route into charitable impact.
+            </p>
+          </div>
+          <a href="{% url 'become_a_rider' %}" class="shrink-0 rounded-full bg-marigold px-6 py-3 text-sm font-bold text-ink hover:bg-marigold-deep transition-transform active:scale-95 shadow-md">
+            Become a Charity Rider
+          </a>
+        </div>
+      </div>
+
+      <!-- Passenger Stats -->
+      <div class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="rounded-2xl border border-paper-line bg-white p-6 shadow-sm">
+          <i data-lucide="map-pin" class="h-6 w-6 text-marigold-deep"></i>
+          <p class="mt-3 font-display text-3xl font-bold text-ink">{{ rides_joined }}</p>
+          <p class="mt-1 text-xs font-medium text-text-soft">Rides joined so far</p>
+        </div>
+
+        <div class="rounded-2xl border border-paper-line bg-white p-6 shadow-sm">
+          <i data-lucide="hand-heart" class="h-6 w-6 text-marigold-deep"></i>
+          <p class="mt-3 font-display text-3xl font-bold text-ink">₹{{ total_donated|floatformat:0 }}</p>
+          <p class="mt-1 text-xs font-medium text-text-soft">Total contributed to charity</p>
+        </div>
+      </div>
+
+      <!-- Recent Trips -->
+      <div class="mt-10">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-display text-xl font-bold text-ink">Recent Trips</h2>
+          <a href="{% url 'my_trips' %}" class="text-xs font-bold text-marigold-deep hover:underline">
+            View all trips &rarr;
+          </a>
+        </div>
+
+        <div class="space-y-3">
+          {% if joins %}
+            {% for j in joins %}
+              <div class="flex items-center justify-between rounded-2xl border border-paper-line bg-white p-4 shadow-sm">
+                <div>
+                  <p class="font-display text-base font-bold text-ink">
+                    {{ j.ride_offer.start_location }} &rarr; {{ j.ride_offer.destination }}
+                  </p>
+                  <p class="text-xs text-text-soft mt-0.5">
+                    Offered by {{ j.ride_offer.rider.user_profile.user.get_full_name|default:j.ride_offer.rider.user_profile.user.username }}
+                  </p>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span class="rounded-full px-3 py-1 text-xs font-bold {% if j.status == 'ACCEPTED' %}bg-banyan-pale text-banyan-deep{% elif j.status == 'COMPLETED' %}bg-paper-dim text-text-soft{% else %}bg-marigold-pale text-marigold-deep{% endif %}">
+                    {{ j.status }}
+                  </span>
+                  {% if j.status == 'COMPLETED' %}
+                    <a href="{% url 'donate' j.ride_offer.rider.charity_code %}" class="rounded-full bg-marigold px-3 py-1 text-xs font-bold text-ink hover:bg-marigold-deep">
+                      Donate &rarr;
+                    </a>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <p class="rounded-2xl border border-dashed border-paper-line bg-white p-8 text-center text-sm text-text-soft">
+              No trips yet. Find someone travelling your way!
+            </p>
+          {% endif %}
+        </div>
+      </div>
     </div>
-    <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <a class="rounded-2xl border border-paper-line bg-white p-6 transition hover:-translate-y-0.5 hover:border-marigold" href="{% url 'my_rides' %}"><p class="text-xs font-semibold uppercase tracking-[0.18em] text-marigold-deep">Rider</p><h2 class="mt-3 font-display text-2xl text-ink">My rides</h2><p class="mt-2 text-sm text-text-soft">Review requests and complete shared journeys.</p></a>
-      <a class="rounded-2xl border border-paper-line bg-white p-6 transition hover:-translate-y-0.5 hover:border-marigold" href="{% url 'my_trips' %}"><p class="text-xs font-semibold uppercase tracking-[0.18em] text-banyan">Passenger</p><h2 class="mt-3 font-display text-2xl text-ink">My trips</h2><p class="mt-2 text-sm text-text-soft">Track ride requests and trip status.</p></a>
-      <a class="rounded-2xl border border-paper-line bg-white p-6 transition hover:-translate-y-0.5 hover:border-marigold" href="{% url 'dashboard_qr' %}"><p class="text-xs font-semibold uppercase tracking-[0.18em] text-rose-deep">Giving</p><h2 class="mt-3 font-display text-2xl text-ink">QR code</h2><p class="mt-2 text-sm text-text-soft">Share your rider donation QR after rides.</p></a>
-      <a class="rounded-2xl border border-paper-line bg-white p-6 transition hover:-translate-y-0.5 hover:border-marigold" href="{% url 'profile' %}"><p class="text-xs font-semibold uppercase tracking-[0.18em] text-text-soft">Account</p><h2 class="mt-3 font-display text-2xl text-ink">Profile</h2><p class="mt-2 text-sm text-text-soft">Update contact details and rider identity.</p></a>
+
+  {% else %}
+    <!-- ========================================== -->
+    <!-- RIDER DASHBOARD VIEW                       -->
+    <!-- ========================================== -->
+    <div class="fade-up">
+      <!-- Header -->
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 class="font-display text-3xl font-bold text-ink">
+            Welcome back, {{ request.user.first_name|default:request.user.username }}
+          </h1>
+          <p class="mt-1 text-text-soft">Here&apos;s the impact your journeys have made.</p>
+        </div>
+        <div class="flex gap-2">
+          <a href="{% url 'offer_a_ride' %}" class="rounded-full bg-marigold px-4 py-2 text-xs font-bold text-ink hover:bg-marigold-deep shadow-md">
+            Offer a Ride
+          </a>
+          <a href="{% url 'dashboard_qr' %}" class="flex items-center gap-1.5 rounded-full border border-paper-line bg-white px-4 py-2 text-xs font-bold text-ink hover:border-marigold shadow-sm">
+            <i data-lucide="qr-code" class="h-3.5 w-3.5"></i> Charity QR
+          </a>
+        </div>
+      </div>
+
+      <!-- 6 Stat Cards Grid -->
+      <div class="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-3">
+        <!-- 1. Rides Offered -->
+        <div class="rounded-2xl border border-paper-line bg-white p-5 shadow-sm">
+          <i data-lucide="bike" class="h-5 w-5 text-marigold-deep"></i>
+          <p class="mt-3 font-display text-2xl font-bold text-ink">{{ rides_offered }}</p>
+          <p class="mt-1 text-xs text-text-soft">Rides offered</p>
+        </div>
+
+        <!-- 2. People Helped -->
+        <div class="rounded-2xl border border-paper-line bg-white p-5 shadow-sm">
+          <i data-lucide="users" class="h-5 w-5 text-marigold-deep"></i>
+          <p class="mt-3 font-display text-2xl font-bold text-ink">{{ people_helped }}</p>
+          <p class="mt-1 text-xs text-text-soft">People helped</p>
+        </div>
+
+        <!-- 3. Total Donations -->
+        <div class="rounded-2xl border border-paper-line bg-white p-5 shadow-sm">
+          <i data-lucide="hand-heart" class="h-5 w-5 text-marigold-deep"></i>
+          <p class="mt-3 font-display text-2xl font-bold text-ink">₹{{ total_donated|floatformat:0 }}</p>
+          <p class="mt-1 text-xs text-text-soft">Total donations raised</p>
+        </div>
+
+        <!-- 4. Charity Impact -->
+        <div class="rounded-2xl border border-paper-line bg-white p-5 shadow-sm">
+          <i data-lucide="sparkles" class="h-5 w-5 text-marigold-deep"></i>
+          <p class="mt-3 font-display text-2xl font-bold text-ink">{{ donation_count }} gifts</p>
+          <p class="mt-1 text-xs text-text-soft">Charity impact received</p>
+        </div>
+
+        <!-- 5. Current Ride Status -->
+        <div class="rounded-2xl border border-paper-line bg-white p-5 shadow-sm">
+          <i data-lucide="navigation" class="h-5 w-5 text-marigold-deep"></i>
+          <p class="mt-3 font-display text-base font-bold text-ink truncate">
+            {% if current_ride %}
+              {{ current_ride.start_location }} &rarr; {{ current_ride.destination }}
+            {% else %}
+              Not sharing right now
+            {% endif %}
+          </p>
+          <p class="mt-1 text-xs text-text-soft">
+            {% if current_ride %}
+              {{ current_ride_requests }} pending request(s)
+            {% else %}
+              Current ride status
+            {% endif %}
+          </p>
+        </div>
+
+        <!-- 6. Contributor Rank -->
+        <div class="rounded-2xl border border-paper-line bg-white p-5 shadow-sm">
+          <i data-lucide="trophy" class="h-5 w-5 text-marigold-deep"></i>
+          <p class="mt-3 font-display text-2xl font-bold text-ink">
+            {% if rank %}#{{ rank }} of {{ total_riders }}{% else %}Not yet ranked{% endif %}
+          </p>
+          <p class="mt-1 text-xs text-text-soft">Top contributor rank</p>
+        </div>
+      </div>
+
+      <!-- Donation History Area Chart -->
+      <div class="mt-10 rounded-3xl border border-paper-line bg-white p-6 sm:p-8 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 class="font-display text-xl font-bold text-ink">Donation History</h2>
+            <p class="mt-1 text-xs text-text-soft">Every contribution made through your charity QR code.</p>
+          </div>
+
+          <!-- Time Granularity Filter -->
+          <div class="flex gap-1.5 rounded-full border border-paper-line bg-paper p-1 text-xs font-bold">
+            <button type="button" onclick="setGranularity('day')" id="btn-day" class="rounded-full px-3 py-1 transition-colors text-text-soft hover:text-ink">Day</button>
+            <button type="button" onclick="setGranularity('week')" id="btn-week" class="rounded-full px-3 py-1 transition-colors text-text-soft hover:text-ink">Week</button>
+            <button type="button" onclick="setGranularity('month')" id="btn-month" class="rounded-full bg-ink text-on-ink px-3 py-1 transition-colors">Month</button>
+            <button type="button" onclick="setGranularity('year')" id="btn-year" class="rounded-full px-3 py-1 transition-colors text-text-soft hover:text-ink">Year</button>
+          </div>
+        </div>
+
+        <!-- Interactive SVG Area Chart Canvas -->
+        <div class="mt-6 h-64 w-full relative flex items-end">
+          <svg id="donation-chart-svg" class="w-full h-full" viewBox="0 0 700 200" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="donationFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#e8a33d" stop-opacity="0.45" />
+                <stop offset="100%" stop-color="#e8a33d" stop-opacity="0.03" />
+              </linearGradient>
+            </defs>
+            <line x1="0" y1="50" x2="700" y2="50" stroke="#e3d9c2" stroke-dasharray="4 6" stroke-width="1" />
+            <line x1="0" y1="100" x2="700" y2="100" stroke="#e3d9c2" stroke-dasharray="4 6" stroke-width="1" />
+            <line x1="0" y1="150" x2="700" y2="150" stroke="#e3d9c2" stroke-dasharray="4 6" stroke-width="1" />
+            <path id="chart-area" d="M0,200 L70,160 L140,140 L210,170 L280,110 L350,130 L420,90 L490,70 L560,110 L630,50 L700,80 L700,200 Z" fill="url(#donationFill)" />
+            <path id="chart-line" d="M0,200 L70,160 L140,140 L210,170 L280,110 L350,130 L420,90 L490,70 L560,110 L630,50 L700,80" fill="none" stroke="#c47f22" stroke-width="3" stroke-linecap="round" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- Quick Action Shortcuts -->
+      <div class="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <a href="{% url 'my_rides' %}" class="rounded-2xl border border-paper-line bg-white px-4 py-3.5 text-center text-sm font-bold text-ink hover:border-marigold hover:bg-marigold-pale/30 transition-all shadow-sm">
+          My Rides
+        </a>
+        <a href="{% url 'donations' %}" class="rounded-2xl border border-paper-line bg-white px-4 py-3.5 text-center text-sm font-bold text-ink hover:border-marigold hover:bg-marigold-pale/30 transition-all shadow-sm">
+          Donations
+        </a>
+        <a href="{% url 'dashboard_impact' %}" class="rounded-2xl border border-paper-line bg-white px-4 py-3.5 text-center text-sm font-bold text-ink hover:border-marigold hover:bg-marigold-pale/30 transition-all shadow-sm">
+          Impact
+        </a>
+        <a href="{% url 'profile' %}" class="rounded-2xl border border-paper-line bg-white px-4 py-3.5 text-center text-sm font-bold text-ink hover:border-marigold hover:bg-marigold-pale/30 transition-all shadow-sm">
+          Profile Settings
+        </a>
+      </div>
     </div>
-  </div>
-</section>
+  {% endif %}
+
+</div>
+
+<script>
+  function setGranularity(mode) {
+    ['day', 'week', 'month', 'year'].forEach(m => {
+      const btn = document.getElementById('btn-' + m);
+      if (btn) {
+        if (m === mode) {
+          btn.className = "rounded-full bg-ink text-on-ink px-3 py-1 transition-colors";
+        } else {
+          btn.className = "rounded-full px-3 py-1 transition-colors text-text-soft hover:text-ink";
+        }
+      }
+    });
+
+    const area = document.getElementById('chart-area');
+    const line = document.getElementById('chart-line');
+    if (!area || !line) return;
+
+    if (mode === 'day') {
+      area.setAttribute('d', 'M0,200 L70,180 L140,150 L210,160 L280,120 L350,140 L420,100 L490,130 L560,90 L630,70 L700,60 L700,200 Z');
+      line.setAttribute('d', 'M0,200 L70,180 L140,150 L210,160 L280,120 L350,140 L420,100 L490,130 L560,90 L630,70 L700,60');
+    } else if (mode === 'week') {
+      area.setAttribute('d', 'M0,200 L100,160 L200,110 L300,140 L400,80 L500,60 L600,90 L700,40 L700,200 Z');
+      line.setAttribute('d', 'M0,200 L100,160 L200,110 L300,140 L400,80 L500,60 L600,90 L700,40');
+    } else if (mode === 'month') {
+      area.setAttribute('d', 'M0,200 L70,160 L140,140 L210,170 L280,110 L350,130 L420,90 L490,70 L560,110 L630,50 L700,80 L700,200 Z');
+      line.setAttribute('d', 'M0,200 L70,160 L140,140 L210,170 L280,110 L350,130 L420,90 L490,70 L560,110 L630,50 L700,80');
+    } else if (mode === 'year') {
+      area.setAttribute('d', 'M0,200 L175,150 L350,90 L525,60 L700,30 L700,200 Z');
+      line.setAttribute('d', 'M0,200 L175,150 L350,90 L525,60 L700,30');
+    }
+  }
+</script>
 {% endblock %}

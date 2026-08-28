@@ -1,21 +1,127 @@
 {% extends "backseat/base.html" %}
+
 {% block content %}
-<section class="mx-auto max-w-3xl px-6 py-16">
+<div class="mx-auto max-w-2xl px-6 py-16">
   <div class="fade-up">
-    <h1 class="font-display text-3xl text-ink sm:text-4xl">Offer a Ride</h1>
-    <p class="mt-3 text-text-soft">Add your vehicle details once and publish your route with available seats. No fare or fee, ever.</p>
+    <h1 class="font-display text-3xl font-bold text-ink sm:text-4xl">Offer a Ride</h1>
+    <p class="mt-3 text-text-soft">
+      Already heading somewhere? Share your spare seats for free and give passengers the chance to support charity.
+    </p>
   </div>
-  <div class="mt-8 rounded-3xl border border-paper-line bg-white p-6 shadow-sm sm:p-8 fade-up delay-1">
-    <h2 class="font-display text-xl text-ink">Publish a new ride</h2>
-    <form method="post" class="mt-5 grid gap-4">{% csrf_token %}
-      <div class="grid gap-4 sm:grid-cols-2"><label>Vehicle type<select name="vehicle_type"><option>FOUR_WHEELER</option><option>TWO_WHEELER</option></select></label><label>Seats<input type="number" name="seats_available" min="1" max="6" value="1"></label></div>
-      <div class="grid gap-4 sm:grid-cols-3"><label>Make<input name="vehicle_make" required></label><label>Model<input name="vehicle_model" required></label><label>Plate<input name="vehicle_plate" required></label></div>
-      <div class="grid gap-4 sm:grid-cols-2"><label>Start<input name="start_location" required></label><label>Destination<input name="destination" required></label></div>
-      <label>Departure time<input type="datetime-local" name="departure_at"></label>
-      <label>Notes<textarea name="notes" maxlength="240" placeholder="Pickup hints, route preference, or timing details"></textarea></label>
-      <div class="rounded-2xl bg-banyan-pale px-4 py-3 text-sm text-banyan-deep">Your ride is shared freely. Passengers may donate later by scanning your charity QR.</div>
-      <button class="rounded-full bg-ink px-6 py-3 text-sm font-semibold text-on-ink">Publish ride</button>
+
+  {% if not rider %}
+    <!-- No Rider Profile Yet -->
+    <div class="mt-8 rounded-3xl border border-paper-line bg-white p-8 text-center shadow-sm">
+      <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-marigold-pale text-marigold-deep">
+        <i data-lucide="bike" class="h-6 w-6"></i>
+      </div>
+      <h2 class="mt-4 font-display text-xl font-bold text-ink">Set up your vehicle details first</h2>
+      <p class="mt-2 text-sm text-text-soft max-w-md mx-auto">
+        To offer a ride, tell us about your two-wheeler or four-wheeler so passengers know what to expect.
+      </p>
+      <a href="{% url 'become_a_rider' %}" class="mt-6 inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-sm font-bold text-on-ink hover:bg-ink-soft shadow-md">
+        Become a Charity Rider &rarr;
+      </a>
+    </div>
+
+  {% elif not rider.is_vehicle_verified %}
+    <!-- Vehicle Pending Verification -->
+    <div class="mt-8 rounded-3xl border border-marigold/50 bg-marigold-pale/40 p-8 text-center shadow-sm">
+      <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-marigold text-ink">
+        <i data-lucide="shield-alert" class="h-6 w-6"></i>
+      </div>
+      <h2 class="mt-4 font-display text-xl font-bold text-ink">Vehicle Verification Pending</h2>
+      <p class="mt-2 text-sm text-text-soft max-w-md mx-auto">
+        Our community safety team is verifying your vehicle details (<strong>{{ rider.vehicle_make }} {{ rider.vehicle_model }} &bull; {{ rider.vehicle_plate }}</strong>).
+        You will be able to publish ride offers as soon as it is approved.
+      </p>
+      <div class="mt-6 flex justify-center gap-3">
+        <a href="{% url 'profile' %}" class="rounded-full border border-paper-line bg-white px-5 py-2.5 text-xs font-bold text-ink hover:border-marigold">
+          Edit Vehicle Details
+        </a>
+        <a href="{% url 'dashboard' %}" class="rounded-full bg-ink px-5 py-2.5 text-xs font-bold text-on-ink hover:bg-ink-soft">
+          Go to Dashboard
+        </a>
+      </div>
+    </div>
+
+  {% else %}
+    <!-- Verified Rider: Ride Creation Form -->
+    <form method="post" class="mt-8 space-y-6 rounded-3xl border border-paper-line bg-white p-8 shadow-sm">
+      {% csrf_token %}
+
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-text-soft mb-2">Pickup Location / City</label>
+        <div class="relative flex items-center">
+          <i data-lucide="map-pin" class="absolute left-4 h-4 w-4 text-text-soft"></i>
+          <input
+            type="text"
+            name="start_location"
+            placeholder="e.g. Indiranagar, Bengaluru"
+            required
+            class="w-full rounded-2xl border border-paper-line bg-paper py-3.5 pl-11 pr-4 text-sm font-medium text-ink outline-none focus:border-marigold focus:ring-2 focus:ring-marigold/20"
+          >
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-text-soft mb-2">Destination / Drop-off</label>
+        <div class="relative flex items-center">
+          <i data-lucide="navigation" class="absolute left-4 h-4 w-4 text-text-soft"></i>
+          <input
+            type="text"
+            name="destination"
+            placeholder="e.g. Whitefield, Bengaluru"
+            required
+            class="w-full rounded-2xl border border-paper-line bg-paper py-3.5 pl-11 pr-4 text-sm font-medium text-ink outline-none focus:border-marigold focus:ring-2 focus:ring-marigold/20"
+          >
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-text-soft mb-2">Departure Date &amp; Time</label>
+          <input
+            type="datetime-local"
+            name="departure_at"
+            class="w-full rounded-2xl border border-paper-line bg-paper px-4 py-3.5 text-sm font-medium text-ink outline-none focus:border-marigold"
+          >
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-text-soft mb-2">Available Seats</label>
+          <input
+            type="number"
+            name="seats_available"
+            value="1"
+            min="1"
+            max="{{ rider.seats_available }}"
+            class="w-full rounded-2xl border border-paper-line bg-paper px-4 py-3.5 text-sm font-medium text-ink outline-none focus:border-marigold"
+          >
+          <p class="mt-1 text-[11px] text-text-soft">Max {{ rider.seats_available }} seat(s) registered for your vehicle</p>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-text-soft mb-2">Notes for Passengers (Optional)</label>
+        <textarea
+          name="notes"
+          rows="3"
+          placeholder="e.g. Daily commute, flexible by 10 mins, meeting near Metro Pillar 42"
+          class="w-full rounded-2xl border border-paper-line bg-paper p-4 text-sm font-medium text-ink outline-none focus:border-marigold focus:ring-2 focus:ring-marigold/20"
+        ></textarea>
+      </div>
+
+      <!-- Zero Fare Guarantee Alert -->
+      <div class="rounded-2xl border border-banyan/30 bg-banyan-pale p-4 text-xs text-banyan-deep leading-relaxed">
+        <strong>Notice:</strong> Backseat is 100% free. You cannot set, demand, or receive any fare from passengers.
+        Passengers will scan your Charity QR after the journey to donate directly to charity if they wish.
+      </div>
+
+      <button type="submit" class="w-full rounded-full bg-ink py-4 text-sm font-bold text-on-ink hover:bg-ink-soft shadow-lg shadow-ink/15 transition-transform active:scale-98">
+        Publish Free Ride Offer
+      </button>
     </form>
-  </div>
-</section>
+  {% endif %}
+</div>
 {% endblock %}

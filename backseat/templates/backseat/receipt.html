@@ -1,11 +1,93 @@
 {% extends "backseat/base.html" %}
+
 {% block content %}
-<section class="mx-auto max-w-2xl px-6 py-16">
-  <article class="rounded-3xl border border-paper-line bg-white p-8 shadow-xl ticket-perforation fade-up">
-    <p class="text-xs font-semibold uppercase tracking-[0.22em] text-marigold-deep">Receipt</p>
-    <h1 class="mt-3 font-display text-3xl text-ink">{{ donation.donation_ref }}</h1>
-    <div class="mt-6 grid gap-4 rounded-2xl bg-paper-dim p-5 text-sm text-text-soft"><p><b class="text-ink">Amount:</b> INR {{ donation.amount|floatformat:0 }}</p><p><b class="text-ink">Status:</b> {{ donation.status }}</p><p><b class="text-ink">Method:</b> {{ donation.payment_method }}</p><p><b class="text-ink">Charity:</b> {{ donation.charity.name }}</p></div>
-    <button class="mt-6 rounded-full bg-ink px-6 py-3 text-sm font-semibold text-on-ink" onclick="window.print()">Print receipt</button>
+<div class="mx-auto max-w-xl px-6 py-16">
+  
+  <!-- Success Pill -->
+  <div class="fade-up text-center mb-8">
+    <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-banyan-pale text-banyan-deep shadow-md mb-4">
+      <i data-lucide="check" class="h-7 w-7"></i>
+    </div>
+    <h1 class="font-display text-3xl font-bold text-ink">Thank you for your kindness!</h1>
+    <p class="mt-2 text-sm text-text-soft">Your donation has been recorded and credited to the charity partner.</p>
+  </div>
+
+  <!-- Official Receipt Shell -->
+  <article class="ticket-shell bg-white overflow-hidden shadow-xl border border-paper-line">
+    <div class="ticket-main p-8 space-y-6">
+      
+      <!-- Top Receipt Header -->
+      <div class="flex items-center justify-between border-b border-paper-line pb-4">
+        <div>
+          <p class="font-display text-lg font-bold text-ink">Backseat Donation Receipt</p>
+          <p class="font-mono text-xs text-text-soft">Ref: {{ donation.donation_ref }}</p>
+        </div>
+        <span class="rounded-full bg-banyan-pale px-3 py-1 text-xs font-bold text-banyan-deep">
+          Successful
+        </span>
+      </div>
+
+      <!-- Amount Display -->
+      <div class="rounded-2xl bg-paper-dim/60 p-6 text-center">
+        <p class="text-xs uppercase tracking-wider font-semibold text-text-soft">Donation Amount</p>
+        <p class="mt-1 font-display text-4xl font-bold text-ink">₹{{ donation.amount|floatformat:0 }}</p>
+        <p class="mt-1 text-xs text-text-soft">Paid via {{ donation.payment_method }} ({{ donation.transaction_ref }})</p>
+      </div>
+
+      <!-- Metadata Grid -->
+      <div class="grid grid-cols-2 gap-4 text-xs">
+        <div>
+          <p class="uppercase tracking-wider font-semibold text-text-soft">Date &amp; Time</p>
+          <p class="mt-1 font-medium text-ink">{{ donation.created_at|date:"j F Y, g:i A" }}</p>
+        </div>
+        <div>
+          <p class="uppercase tracking-wider font-semibold text-text-soft">Donor Name</p>
+          <p class="mt-1 font-medium text-ink">{{ donation.donor_display_name_snapshot|default:"A kind traveller" }}</p>
+        </div>
+        <div>
+          <p class="uppercase tracking-wider font-semibold text-text-soft">Beneficiary Charity</p>
+          <p class="mt-1 font-semibold text-ink">{{ donation.charity.name }}</p>
+          <p class="text-[11px] text-text-soft">Reg: {{ donation.charity.registration_number|default:"BCT-2026" }}</p>
+        </div>
+        <div>
+          <p class="uppercase tracking-wider font-semibold text-text-soft">Rider Attribution</p>
+          <p class="mt-1 font-medium text-ink">
+            {{ donation.rider.user_profile.user.get_full_name|default:"Community Rider" }}
+          </p>
+        </div>
+      </div>
+
+      <!-- 80G Tax Exemption Note -->
+      <div class="rounded-2xl border border-dashed border-paper-line p-4 text-[11px] text-text-soft leading-relaxed">
+        <strong>Tax Exemption:</strong> Donations are eligible for tax exemption under Section 80G of the Income Tax Act. A formal certificate will be issued by {{ donation.charity.name }} upon request.
+      </div>
+    </div>
+
+    <!-- Ticket Side Actions -->
+    <div class="ticket-side p-6 flex flex-col justify-between">
+      <div>
+        <p class="text-xs uppercase tracking-wider font-semibold text-text-soft">Actions</p>
+        <p class="mt-1 text-xs text-text-soft">Save or print this receipt for your records.</p>
+      </div>
+
+      <div class="space-y-2 mt-6">
+        <button
+          type="button"
+          onclick="window.print()"
+          class="w-full flex items-center justify-center gap-1.5 rounded-full bg-ink py-2.5 text-xs font-bold text-on-ink hover:bg-ink-soft shadow-sm"
+        >
+          <i data-lucide="printer" class="h-3.5 w-3.5"></i> Print Receipt
+        </button>
+
+        <a
+          href="{% url 'home' %}"
+          class="block w-full text-center rounded-full border border-paper-line bg-white py-2.5 text-xs font-bold text-ink hover:border-marigold"
+        >
+          Return Home
+        </a>
+      </div>
+    </div>
   </article>
-</section>
+
+</div>
 {% endblock %}

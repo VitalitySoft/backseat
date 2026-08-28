@@ -1,71 +1,571 @@
 {% load static %}
 <!doctype html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ title|default:"Backseat" }}</title>
+  <title>{{ title|default:"Backseat — Share Your Journey. Spread Kindness." }}</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CDN with Backseat Theme -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
-    tailwind.config = { theme: { extend: { colors: { ink: "#1e2749", "ink-deep": "#12172b", "ink-soft": "#2c3660", paper: "#fbf6ec", "paper-dim": "#f3ecdc", "paper-line": "#e3d9c2", marigold: "#e8a33d", "marigold-deep": "#c47f22", "marigold-pale": "#fbe6bf", rose: "#e2697d", "rose-deep": "#c14a5e", "rose-pale": "#f8dde2", banyan: "#3f7566", "banyan-deep": "#2c5548", "banyan-pale": "#dcece5", text: "#23283a", "text-soft": "#5b5f72", "on-ink": "#f6f1e4", "on-ink-soft": "#b9bfe0" }, fontFamily: { display: ["Fraunces", "Georgia", "serif"], body: ["Manrope", "ui-sans-serif", "system-ui", "sans-serif"] } } } };
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink: "#1e2749",
+            "ink-deep": "#12172b",
+            "ink-soft": "#2c3660",
+            paper: "#fbf6ec",
+            "paper-dim": "#f3ecdc",
+            "paper-line": "#e3d9c2",
+            marigold: "#e8a33d",
+            "marigold-deep": "#c47f22",
+            "marigold-pale": "#fbe6bf",
+            rose: "#e2697d",
+            "rose-deep": "#c14a5e",
+            "rose-pale": "#f8dde2",
+            banyan: "#3f7566",
+            "banyan-deep": "#2c5548",
+            "banyan-pale": "#dcece5",
+            text: "#23283a",
+            "text-soft": "#5b5f72",
+            "on-ink": "#f6f1e4",
+            "on-ink-soft": "#b9bfe0",
+          },
+          fontFamily: {
+            display: ["Fraunces", "Georgia", "serif"],
+            body: ["Manrope", "ui-sans-serif", "system-ui", "sans-serif"],
+            mono: ["JetBrains Mono", "monospace"],
+          },
+        },
+      },
+    };
   </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
   <link rel="stylesheet" href="{% static 'styles.css' %}">
   <link rel="stylesheet" href="{% static 'parity.css' %}">
 </head>
-<body>
-  <header class="sticky top-0 z-50 border-b border-paper-line bg-paper/90 backdrop-blur">
+<body class="min-h-full flex flex-col bg-paper text-text font-body pb-16 md:pb-0">
+
+  <!-- Top Sticky Navigation Header -->
+  <header class="sticky top-0 z-40 border-b border-paper-line bg-paper/90 backdrop-blur-md">
     <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 md:px-6">
-      <a class="inline-flex items-center gap-2 text-ink" href="{% url 'home' %}"><span class="flex h-9 w-9 items-center justify-center rounded-full bg-ink font-display text-lg text-marigold">B</span><span class="font-display text-xl font-semibold">Backseat</span></a>
-      <nav class="hidden items-center gap-6 lg:flex"><a class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep" href="{% url 'find_a_ride' %}">Find a Ride</a><a class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep" href="{% url 'offer_a_ride' %}">Offer a Ride</a><a class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep" href="{% url 'how_it_works' %}">How It Works</a><a class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep" href="{% url 'charity_impact' %}">Charity Impact</a><a class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep" href="{% url 'top_contributors' %}">Top Contributors</a><a class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep" href="{% url 'about' %}">About Us</a></nav>
-      <div class="hidden items-center gap-3 lg:flex">{% if request.user.is_authenticated %}<a class="rounded-full border border-paper-line bg-white/60 px-4 py-2 text-sm font-semibold text-ink hover:border-marigold" href="{% url 'dashboard' %}">Dashboard</a>{% if nav_profile.role == "ADMIN" %}<a class="text-sm font-medium text-text-soft hover:text-ink" href="{% url 'admin_console' %}">Admin</a>{% endif %}<form action="{% url 'logout' %}" method="post">{% csrf_token %}<button class="text-sm font-medium text-rose-deep hover:text-ink">Log out</button></form>{% else %}<a class="text-sm font-medium text-text-soft hover:text-ink" href="{% url 'login' %}">Login</a><a class="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-on-ink transition-transform hover:scale-[1.03]" href="{% url 'register' %}">Get Started</a>{% endif %}</div>
+      
+      <!-- Brand Logo -->
+      <a href="{% url 'home' %}" class="inline-flex items-center gap-2.5 text-ink transition-transform hover:scale-[1.02]">
+        <div class="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-marigold shadow-md shadow-ink/20">
+          <!-- Backseat Bike Logo Mark -->
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="5.5" cy="17.5" r="3.5"/>
+            <circle cx="18.5" cy="17.5" r="3.5"/>
+            <path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5L9 9l3-3 3.5 3h3.5"/>
+            <path d="M5.5 17.5 9 9"/>
+          </svg>
+        </div>
+        <div class="flex flex-col">
+          <span class="font-display text-xl font-bold tracking-tight text-ink leading-tight">Backseat</span>
+        </div>
+      </a>
+
+      <!-- Desktop Nav Links -->
+      <nav class="hidden items-center gap-6 lg:flex">
+        <a href="{% url 'find_a_ride' %}" class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep">Find a Ride</a>
+        <a href="{% url 'offer_a_ride' %}" class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep">Offer a Ride</a>
+        <a href="{% url 'how_it_works' %}" class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep">How It Works</a>
+        <a href="{% url 'charity_impact' %}" class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep">Charity Impact</a>
+        <a href="{% url 'top_contributors' %}" class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep">Top Contributors</a>
+        <a href="{% url 'about' %}" class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep">About Us</a>
+      </nav>
+
+      <!-- Desktop Actions / Auth -->
+      <div class="hidden items-center gap-3 lg:flex">
+        {% if request.user.is_authenticated %}
+          <!-- Notification Bell -->
+          <div class="relative" id="notif-dropdown-wrapper">
+            <button id="notif-btn" type="button" class="relative flex h-9 w-9 items-center justify-center rounded-full text-text-soft hover:bg-paper-dim hover:text-ink transition-colors" aria-label="Notifications">
+              <i data-lucide="bell" class="h-5 w-5"></i>
+              {% if unread_count > 0 %}
+                <span class="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-deep px-1 text-[9px] font-bold text-white shadow-sm">
+                  {{ unread_count }}
+                </span>
+              {% endif %}
+            </button>
+            <div id="notif-menu" class="absolute right-0 mt-2 hidden w-80 overflow-hidden rounded-2xl border border-paper-line bg-white shadow-xl shadow-ink/10 z-50">
+              <div class="flex items-center justify-between border-b border-paper-line px-4 py-3 bg-paper-dim/40">
+                <p class="text-sm font-semibold text-ink">Notifications</p>
+                {% if unread_count > 0 %}
+                  <button id="mark-all-read-btn" class="flex items-center gap-1 text-xs font-medium text-marigold-deep hover:underline">
+                    <i data-lucide="check-check" class="h-3.5 w-3.5"></i> Mark all read
+                  </button>
+                {% endif %}
+              </div>
+              <div class="max-h-80 overflow-y-auto divide-y divide-paper-line">
+                {% if recent_notifications %}
+                  {% for n in recent_notifications %}
+                    <a href="{{ n.link|default:'#' }}" class="block px-4 py-3 text-left transition-colors hover:bg-paper-dim/50 {% if not n.is_read %}bg-marigold-pale/25{% endif %}">
+                      <div class="flex items-start gap-2">
+                        {% if not n.is_read %}<span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-marigold-deep"></span>{% endif %}
+                        <div class="min-w-0 flex-1">
+                          <p class="text-sm font-medium text-ink leading-tight">{{ n.title }}</p>
+                          <p class="mt-0.5 text-xs text-text-soft leading-relaxed">{{ n.body }}</p>
+                          <p class="mt-1 text-[10px] text-text-soft/70">{{ n.created_at|timesince }} ago</p>
+                        </div>
+                      </div>
+                    </a>
+                  {% endfor %}
+                {% else %}
+                  <p class="px-4 py-8 text-center text-xs text-text-soft">No notifications yet.</p>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- User Avatar Dropdown -->
+          <div class="relative" id="user-dropdown-wrapper">
+            <button id="user-menu-btn" type="button" class="flex items-center gap-2 rounded-full border border-paper-line bg-white/70 py-1.5 pl-1.5 pr-3 text-sm font-semibold text-ink hover:border-marigold transition-all">
+              <span class="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-xs font-bold text-on-ink">
+                {{ nav_user.first_name|default:nav_user.username|slice:":1"|upper }}
+              </span>
+              <span class="max-w-[100px] truncate">{{ nav_user.first_name|default:nav_user.username }}</span>
+              <i data-lucide="chevron-down" class="h-4 w-4 text-text-soft"></i>
+            </button>
+            <div id="user-menu" class="absolute right-0 mt-2 hidden w-56 overflow-hidden rounded-2xl border border-paper-line bg-white shadow-xl shadow-ink/10 z-50 py-1">
+              {% if is_admin %}
+                <a href="{% url 'admin_console' %}" class="flex items-center gap-2 px-4 py-2.5 text-sm text-ink hover:bg-paper-dim font-medium">
+                  <i data-lucide="shield-alert" class="h-4 w-4 text-marigold-deep"></i> Admin Portal
+                </a>
+              {% else %}
+                <a href="{% url 'dashboard' %}" class="flex items-center gap-2 px-4 py-2.5 text-sm text-ink hover:bg-paper-dim font-medium">
+                  <i data-lucide="layout-dashboard" class="h-4 w-4 text-text-soft"></i> Dashboard
+                </a>
+                {% if nav_rider %}
+                  <a href="{% url 'dashboard_qr' %}" class="flex items-center gap-2 px-4 py-2.5 text-sm text-ink hover:bg-paper-dim font-medium">
+                    <i data-lucide="qr-code" class="h-4 w-4 text-text-soft"></i> Charity QR
+                  </a>
+                {% else %}
+                  <a href="{% url 'become_a_rider' %}" class="flex items-center gap-2 px-4 py-2.5 text-sm text-ink hover:bg-paper-dim font-medium">
+                    <i data-lucide="bike" class="h-4 w-4 text-marigold-deep"></i> Become a Rider
+                  </a>
+                {% endif %}
+                <a href="{% url 'my_rides' %}" class="flex items-center gap-2 px-4 py-2.5 text-sm text-ink hover:bg-paper-dim font-medium">
+                  <i data-lucide="car" class="h-4 w-4 text-text-soft"></i> My Rides
+                </a>
+                <a href="{% url 'my_trips' %}" class="flex items-center gap-2 px-4 py-2.5 text-sm text-ink hover:bg-paper-dim font-medium">
+                  <i data-lucide="map-pin" class="h-4 w-4 text-text-soft"></i> My Trips
+                </a>
+                <a href="{% url 'donations' %}" class="flex items-center gap-2 px-4 py-2.5 text-sm text-ink hover:bg-paper-dim font-medium">
+                  <i data-lucide="heart" class="h-4 w-4 text-text-soft"></i> Donations
+                </a>
+                <a href="{% url 'profile' %}" class="flex items-center gap-2 px-4 py-2.5 text-sm text-ink hover:bg-paper-dim font-medium">
+                  <i data-lucide="user" class="h-4 w-4 text-text-soft"></i> Profile Settings
+                </a>
+              {% endif %}
+              <div class="border-t border-paper-line my-1"></div>
+              <form action="{% url 'logout' %}" method="post" class="m-0">
+                {% csrf_token %}
+                <button type="submit" class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm font-semibold text-rose-deep hover:bg-rose-pale">
+                  <i data-lucide="log-out" class="h-4 w-4"></i> Log out
+                </button>
+              </form>
+            </div>
+          </div>
+        {% else %}
+          <a href="{% url 'login' %}" class="text-sm font-medium text-text-soft hover:text-ink">Login</a>
+          <a href="{% url 'register' %}" class="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-on-ink transition-transform hover:scale-[1.03] shadow-md shadow-ink/15">Get Started</a>
+        {% endif %}
+      </div>
+
+      <!-- Mobile Hamburger Toggle -->
+      <div class="flex items-center gap-2 lg:hidden">
+        <button id="mobile-menu-btn" type="button" class="rounded-full p-2 text-ink hover:bg-paper-dim" aria-label="Toggle menu">
+          <i data-lucide="menu" id="hamburger-icon" class="h-6 w-6"></i>
+          <i data-lucide="x" id="close-icon" class="h-6 w-6 hidden"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Drawer Menu -->
+    <div id="mobile-drawer" class="hidden border-t border-paper-line bg-paper px-4 py-4 lg:hidden">
+      <nav class="flex flex-col gap-1">
+        <a href="{% url 'find_a_ride' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">Find a Ride</a>
+        <a href="{% url 'offer_a_ride' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">Offer a Ride</a>
+        <a href="{% url 'how_it_works' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">How It Works</a>
+        <a href="{% url 'charity_impact' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">Charity Impact</a>
+        <a href="{% url 'top_contributors' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">Top Contributors</a>
+        <a href="{% url 'about' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">About Us</a>
+
+        {% if request.user.is_authenticated %}
+          <div class="border-t border-paper-line my-2 pt-2">
+            {% if is_admin %}
+              <a href="{% url 'admin_console' %}" class="rounded-xl px-3 py-2.5 text-sm font-semibold text-ink hover:bg-paper-dim">Admin Portal</a>
+            {% else %}
+              <a href="{% url 'dashboard' %}" class="rounded-xl px-3 py-2.5 text-sm font-semibold text-ink hover:bg-paper-dim">Dashboard</a>
+              <a href="{% url 'my_rides' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">My Rides</a>
+              <a href="{% url 'my_trips' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">My Trips</a>
+              <a href="{% url 'profile' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">Profile Settings</a>
+            {% endif %}
+            <form action="{% url 'logout' %}" method="post" class="mt-2">
+              {% csrf_token %}
+              <button type="submit" class="w-full rounded-full border border-paper-line px-4 py-2.5 text-center text-sm font-semibold text-rose-deep">Log out</button>
+            </form>
+          </div>
+        {% else %}
+          <div class="mt-3 flex flex-col gap-2 border-t border-paper-line pt-3">
+            <a href="{% url 'login' %}" class="rounded-full border border-paper-line px-4 py-2.5 text-center text-sm font-semibold text-ink">Login</a>
+            <a href="{% url 'register' %}" class="rounded-full bg-ink px-4 py-2.5 text-center text-sm font-semibold text-on-ink">Get Started</a>
+          </div>
+        {% endif %}
+      </nav>
     </div>
   </header>
-  {% for message in messages %}<div class="mx-auto mt-3 max-w-6xl rounded-xl border border-marigold bg-marigold-pale px-4 py-3 text-sm text-ink">{{ message }}</div>{% endfor %}
-  <main>{% block content %}{% endblock %}</main>
+
+  <!-- Flash Messages Banner -->
+  {% if messages %}
+    <div class="mx-auto w-full max-w-5xl px-4 pt-4">
+      {% for message in messages %}
+        <div class="mb-3 flex items-center justify-between rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm {% if message.tags == 'error' %}border-rose bg-rose-pale text-rose-deep{% elif message.tags == 'success' %}border-banyan bg-banyan-pale text-banyan-deep{% else %}border-marigold bg-marigold-pale text-ink{% endif %}">
+          <div class="flex items-center gap-2">
+            <i data-lucide="info" class="h-4 w-4 shrink-0"></i>
+            <span>{{ message }}</span>
+          </div>
+          <button type="button" onclick="this.parentElement.remove()" class="opacity-70 hover:opacity-100">&times;</button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Main Body Content Block -->
+  <main class="flex-1">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Mobile Sticky Bottom Nav -->
+  <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-paper-line bg-white/95 backdrop-blur-md md:hidden">
+    <div class="mx-auto flex max-w-md items-stretch justify-around px-2 py-1.5">
+      {% if is_admin %}
+        <a href="{% url 'home' %}" class="flex flex-1 flex-col items-center gap-1 py-1 text-[11px] font-medium text-text-soft hover:text-ink">
+          <i data-lucide="home" class="h-5 w-5"></i>
+          <span>Home</span>
+        </a>
+        <a href="{% url 'admin_console' %}" class="flex flex-1 flex-col items-center gap-1 py-1 text-[11px] font-semibold text-marigold-deep">
+          <i data-lucide="shield-alert" class="h-5 w-5"></i>
+          <span>Admin</span>
+        </a>
+      {% elif request.user.is_authenticated %}
+        <a href="{% url 'find_a_ride' %}" class="flex flex-1 flex-col items-center gap-1 py-1 text-[11px] font-medium text-text-soft hover:text-ink">
+          <i data-lucide="search" class="h-5 w-5"></i>
+          <span>Find</span>
+        </a>
+        <a href="{% url 'my_trips' %}" class="flex flex-1 flex-col items-center gap-1 py-1 text-[11px] font-medium text-text-soft hover:text-ink">
+          <i data-lucide="clipboard-list" class="h-5 w-5"></i>
+          <span>Trips</span>
+        </a>
+        <a href="{% url 'offer_a_ride' %}" class="-mt-4 flex flex-col items-center gap-1">
+          <span class="flex h-11 w-11 items-center justify-center rounded-full bg-marigold text-ink shadow-lg shadow-marigold/40">
+            <i data-lucide="bike" class="h-5 w-5"></i>
+          </span>
+          <span class="text-[10px] font-bold text-marigold-deep">Offer</span>
+        </a>
+        <a href="{% url 'my_rides' %}" class="flex flex-1 flex-col items-center gap-1 py-1 text-[11px] font-medium text-text-soft hover:text-ink">
+          <i data-lucide="car" class="h-5 w-5"></i>
+          <span>Rides</span>
+        </a>
+        <a href="{% url 'dashboard' %}" class="flex flex-1 flex-col items-center gap-1 py-1 text-[11px] font-medium text-text-soft hover:text-ink">
+          <i data-lucide="user" class="h-5 w-5"></i>
+          <span>Account</span>
+        </a>
+      {% else %}
+        <a href="{% url 'home' %}" class="flex flex-1 flex-col items-center gap-1 py-1 text-[11px] font-medium text-text-soft hover:text-ink">
+          <i data-lucide="home" class="h-5 w-5"></i>
+          <span>Home</span>
+        </a>
+        <a href="{% url 'find_a_ride' %}" class="flex flex-1 flex-col items-center gap-1 py-1 text-[11px] font-medium text-text-soft hover:text-ink">
+          <i data-lucide="search" class="h-5 w-5"></i>
+          <span>Find</span>
+        </a>
+        <a href="{% url 'offer_a_ride' %}" class="flex flex-1 flex-col items-center gap-1 py-1 text-[11px] font-medium text-text-soft hover:text-ink">
+          <i data-lucide="bike" class="h-5 w-5"></i>
+          <span>Offer</span>
+        </a>
+        <a href="{% url 'login' %}" class="flex flex-1 flex-col items-center gap-1 py-1 text-[11px] font-medium text-text-soft hover:text-ink">
+          <i data-lucide="log-in" class="h-5 w-5"></i>
+          <span>Login</span>
+        </a>
+      {% endif %}
+    </div>
+  </nav>
+
+  <!-- Interactive Floating Chatbot Assistant -->
   <div id="backseat-chatbot" class="fixed bottom-20 right-4 z-50 md:bottom-6 md:right-6">
-    <section id="chatbot-panel" class="mb-3 hidden h-[520px] max-h-[calc(100vh-7rem)] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-2xl border border-paper-line bg-white shadow-2xl shadow-ink/15">
-      <div class="flex items-center justify-between bg-ink px-4 py-3 text-on-ink">
-        <div class="flex items-center gap-2"><span class="flex h-9 w-9 items-center justify-center rounded-full bg-marigold text-ink">B</span><div><h2 class="text-sm font-bold">Backseat Assistant</h2><p class="text-xs text-on-ink-soft">Answers on the fly</p></div></div>
-        <button id="chatbot-close" type="button" class="rounded-full p-2 text-on-ink-soft hover:bg-white/10 hover:text-on-ink" aria-label="Close chat">x</button>
+    <!-- Chatbot Drawer Panel -->
+    <section id="chatbot-panel" class="mb-3 hidden h-[520px] max-h-[calc(100vh-7rem)] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-3xl border border-paper-line bg-white shadow-2xl shadow-ink/20">
+      <!-- Header -->
+      <div class="flex items-center justify-between bg-ink px-4 py-3.5 text-on-ink">
+        <div class="flex items-center gap-2.5">
+          <span class="flex h-8 w-8 items-center justify-center rounded-full bg-marigold font-bold text-ink">B</span>
+          <div>
+            <h2 class="text-sm font-bold leading-tight">Backseat Assistant</h2>
+            <p class="text-[11px] text-on-ink-soft">Here to help 24/7</p>
+          </div>
+        </div>
+        <button id="chatbot-close" type="button" class="rounded-full p-1.5 text-on-ink-soft hover:bg-white/10 hover:text-on-ink" aria-label="Close chat">
+          <i data-lucide="x" class="h-4 w-4"></i>
+        </button>
       </div>
+
+      <!-- Messages Thread -->
       <div id="chatbot-messages" class="flex-1 space-y-3 overflow-y-auto bg-paper px-4 py-4">
-        <div class="flex justify-start"><div class="max-w-[82%] rounded-2xl border border-paper-line bg-white px-4 py-3 text-sm leading-relaxed text-text">Hi, I can answer questions about Backseat rides, donations, rider QR codes, safety, and account setup.</div></div>
+        <div class="flex justify-start">
+          <div class="max-w-[85%] rounded-2xl border border-paper-line bg-white px-4 py-3 text-sm leading-relaxed text-text shadow-sm">
+            Hi! I'm here to help with Backseat rides, voluntary charity donations, rider QR codes, and safety guidelines.
+          </div>
+        </div>
       </div>
+
+      <!-- Quick Suggestion Chips & Form -->
       <div class="border-t border-paper-line bg-white p-3">
-        <div class="mb-2 flex gap-2 overflow-x-auto">
-          <button type="button" data-suggestion="How do I offer a ride?" class="shrink-0 rounded-full border border-paper-line px-3 py-1.5 text-xs font-semibold text-text-soft hover:border-marigold hover:text-ink">How do I offer a ride?</button>
-          <button type="button" data-suggestion="How do donations work?" class="shrink-0 rounded-full border border-paper-line px-3 py-1.5 text-xs font-semibold text-text-soft hover:border-marigold hover:text-ink">How do donations work?</button>
-          <button type="button" data-suggestion="How can I find a ride?" class="shrink-0 rounded-full border border-paper-line px-3 py-1.5 text-xs font-semibold text-text-soft hover:border-marigold hover:text-ink">How can I find a ride?</button>
+        <div class="mb-2 flex gap-1.5 overflow-x-auto scrollbar-none pb-1">
+          <button type="button" data-suggestion="How do I offer a ride?" class="shrink-0 rounded-full border border-paper-line bg-paper px-3 py-1 text-xs font-semibold text-text-soft hover:border-marigold hover:text-ink transition-colors">
+            Offer a ride
+          </button>
+          <button type="button" data-suggestion="How do donations work?" class="shrink-0 rounded-full border border-paper-line bg-paper px-3 py-1 text-xs font-semibold text-text-soft hover:border-marigold hover:text-ink transition-colors">
+            Donation flow
+          </button>
+          <button type="button" data-suggestion="How can I find a ride?" class="shrink-0 rounded-full border border-paper-line bg-paper px-3 py-1 text-xs font-semibold text-text-soft hover:border-marigold hover:text-ink transition-colors">
+            Find a ride
+          </button>
         </div>
         <form id="chatbot-form" class="flex items-center gap-2">
-          <input id="chatbot-input" placeholder="Ask about Backseat" class="min-w-0 flex-1 rounded-full border border-paper-line bg-paper px-4 py-2.5 text-sm outline-none focus:border-marigold">
-          <button type="submit" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink text-on-ink" aria-label="Send message">></button>
+          <input id="chatbot-input" placeholder="Ask a question…" class="min-w-0 flex-1 rounded-full border border-paper-line bg-paper px-4 py-2.5 text-sm outline-none focus:border-marigold focus:ring-2 focus:ring-marigold/20">
+          <button type="submit" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-on-ink hover:bg-ink-soft shadow-md transition-transform active:scale-95" aria-label="Send message">
+            <i data-lucide="send" class="h-4 w-4"></i>
+          </button>
         </form>
       </div>
     </section>
-    <button id="chatbot-toggle" type="button" class="flex h-14 w-14 items-center justify-center rounded-full bg-ink text-on-ink shadow-xl shadow-ink/20 transition-transform hover:scale-105" aria-label="Open chat">?</button>
+
+    <!-- Chatbot Floating Button -->
+    <button id="chatbot-toggle" type="button" class="flex h-14 w-14 items-center justify-center rounded-full bg-ink text-marigold shadow-2xl shadow-ink/30 transition-transform hover:scale-105 active:scale-95" aria-label="Open chat">
+      <i data-lucide="message-circle" class="h-7 w-7"></i>
+    </button>
   </div>
-  <footer class="hidden border-t border-paper-line bg-ink text-on-ink-soft md:block"><div class="mx-auto max-w-6xl px-6 py-14"><div class="grid grid-cols-2 gap-10 md:grid-cols-6"><div class="col-span-2"><a class="inline-flex items-center gap-2 text-on-ink" href="{% url 'home' %}"><span class="flex h-9 w-9 items-center justify-center rounded-full bg-on-ink font-display text-lg text-marigold">B</span><span class="font-display text-xl font-semibold">Backseat</span></a><p class="mt-4 max-w-xs text-sm leading-relaxed text-on-ink-soft">Every ride offered here is free. Every donation is a choice. Backseat never sets a fare.</p></div><div><p class="mb-3 text-xs font-semibold uppercase tracking-wide text-on-ink-soft/70">Platform</p><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'find_a_ride' %}">Find a Ride</a><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'offer_a_ride' %}">Offer a Ride</a><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'how_it_works' %}">How It Works</a><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'top_contributors' %}">Top Contributors</a></div><div><p class="mb-3 text-xs font-semibold uppercase tracking-wide text-on-ink-soft/70">Charity</p><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'charity_impact' %}">Where Your Donation Goes</a><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'about' %}">About Us</a></div><div><p class="mb-3 text-xs font-semibold uppercase tracking-wide text-on-ink-soft/70">Trust & Safety</p><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'safety' %}">Safety Centre</a><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'community_guidelines' %}">Community Guidelines</a></div><div><p class="mb-3 text-xs font-semibold uppercase tracking-wide text-on-ink-soft/70">Legal</p><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'terms' %}">Terms of Use</a><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'privacy' %}">Privacy Policy</a><a class="block py-1 text-sm hover:text-marigold-pale" href="{% url 'disclaimers' %}">Legal & Compliance</a></div></div><div class="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-on-ink-soft/70 md:flex-row md:items-center md:justify-between"><p>© Backseat. Not a transportation or fare-collection service.</p><p>Donations are collected on behalf of registered charity partners.</p></div></div></footer>
+
+  <!-- Site Footer -->
+  <footer class="hidden border-t border-paper-line bg-ink text-on-ink-soft md:block">
+    <div class="mx-auto max-w-6xl px-6 py-14">
+      <div class="grid grid-cols-2 gap-10 md:grid-cols-6">
+        <!-- Col 1: Brand & VitalitySoft attribution -->
+        <div class="col-span-2 space-y-4">
+          <a href="{% url 'home' %}" class="inline-flex items-center gap-2 text-on-ink">
+            <span class="flex h-9 w-9 items-center justify-center rounded-full bg-on-ink font-display text-lg font-bold text-marigold">B</span>
+            <span class="font-display text-xl font-bold">Backseat</span>
+          </a>
+          <p class="max-w-xs text-sm leading-relaxed text-on-ink-soft">
+            Every ride offered here is free. Every donation is an independent act of kindness. Backseat never charges a fare.
+          </p>
+          <div class="pt-2">
+            <p class="text-xs font-semibold uppercase tracking-wider text-on-ink-soft/70">Crafted with care by</p>
+            <p class="font-display text-base text-marigold">VitalitySoft</p>
+          </div>
+        </div>
+
+        <!-- Col 2: Platform -->
+        <div>
+          <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-on-ink-soft/70">Platform</p>
+          <div class="flex flex-col space-y-2">
+            <a href="{% url 'find_a_ride' %}" class="text-sm hover:text-marigold-pale transition-colors">Find a Ride</a>
+            <a href="{% url 'offer_a_ride' %}" class="text-sm hover:text-marigold-pale transition-colors">Offer a Ride</a>
+            <a href="{% url 'how_it_works' %}" class="text-sm hover:text-marigold-pale transition-colors">How It Works</a>
+            <a href="{% url 'top_contributors' %}" class="text-sm hover:text-marigold-pale transition-colors">Top Contributors</a>
+          </div>
+        </div>
+
+        <!-- Col 3: Charity -->
+        <div>
+          <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-on-ink-soft/70">Charity</p>
+          <div class="flex flex-col space-y-2">
+            <a href="{% url 'charity_impact' %}" class="text-sm hover:text-marigold-pale transition-colors">Where Donations Go</a>
+            <a href="{% url 'about' %}" class="text-sm hover:text-marigold-pale transition-colors">About Us</a>
+          </div>
+        </div>
+
+        <!-- Col 4: Trust & Safety -->
+        <div>
+          <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-on-ink-soft/70">Trust & Safety</p>
+          <div class="flex flex-col space-y-2">
+            <a href="{% url 'safety' %}" class="text-sm hover:text-marigold-pale transition-colors">Safety Centre</a>
+            <a href="{% url 'community_guidelines' %}" class="text-sm hover:text-marigold-pale transition-colors">Community Guidelines</a>
+          </div>
+        </div>
+
+        <!-- Col 5: Legal -->
+        <div>
+          <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-on-ink-soft/70">Legal</p>
+          <div class="flex flex-col space-y-2">
+            <a href="{% url 'terms' %}" class="text-sm hover:text-marigold-pale transition-colors">Terms of Use</a>
+            <a href="{% url 'privacy' %}" class="text-sm hover:text-marigold-pale transition-colors">Privacy Policy</a>
+            <a href="{% url 'disclaimers' %}" class="text-sm hover:text-marigold-pale transition-colors">Disclaimers & Taxes</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-on-ink-soft/70 md:flex-row md:items-center md:justify-between">
+        <p>&copy; Backseat by VitalitySoft. Not a transportation or fare-collection service.</p>
+        <p>100% of voluntary donations route directly to verified charity partners.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Global Scripts & Lucide Init -->
   <script>
-    (() => {
-      const panel = document.getElementById("chatbot-panel"), toggle = document.getElementById("chatbot-toggle"), close = document.getElementById("chatbot-close"), form = document.getElementById("chatbot-form"), input = document.getElementById("chatbot-input"), messages = document.getElementById("chatbot-messages");
-      const history = [{role: "assistant", content: "Hi, I can answer questions about Backseat rides, donations, rider QR codes, safety, and account setup."}];
-      function bubble(role, text, links) {
-        const row = document.createElement("div"); row.className = "flex " + (role === "user" ? "justify-end" : "justify-start");
-        const box = document.createElement("div"); box.className = "max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-relaxed " + (role === "user" ? "bg-ink text-on-ink" : "border border-paper-line bg-white text-text"); box.textContent = text;
-        if (links && links.length) { const wrap = document.createElement("div"); wrap.className = "mt-3 flex flex-wrap gap-2"; links.forEach((link) => { const a = document.createElement("a"); a.href = link.href; a.textContent = link.label; a.className = "rounded-full bg-marigold-pale px-3 py-1 text-xs font-semibold text-ink hover:bg-marigold"; wrap.appendChild(a); }); box.appendChild(wrap); }
-        row.appendChild(box); messages.appendChild(row); messages.scrollTop = messages.scrollHeight;
+    document.addEventListener("DOMContentLoaded", () => {
+      if (window.lucide) {
+        lucide.createIcons();
       }
-      async function send(text) {
-        const content = text.trim(); if (!content) return; history.push({role: "user", content}); bubble("user", content); input.value = "";
-        const response = await fetch("/api/chatbot", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({messages: history})});
-        const data = await response.json(); history.push({role: "assistant", content: data.answer || data.reply}); bubble("assistant", data.answer || data.reply || "I could not answer that yet.", data.links || []);
+
+      // User Dropdown toggle
+      const userBtn = document.getElementById("user-menu-btn");
+      const userMenu = document.getElementById("user-menu");
+      if (userBtn && userMenu) {
+        userBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          userMenu.classList.toggle("hidden");
+        });
       }
-      toggle.addEventListener("click", () => { panel.classList.toggle("hidden"); panel.classList.toggle("flex"); });
-      close.addEventListener("click", () => { panel.classList.add("hidden"); panel.classList.remove("flex"); });
-      form.addEventListener("submit", (event) => { event.preventDefault(); send(input.value); });
-      document.querySelectorAll("[data-suggestion]").forEach((button) => button.addEventListener("click", () => send(button.dataset.suggestion)));
-    })();
+
+      // Notification Dropdown toggle
+      const notifBtn = document.getElementById("notif-btn");
+      const notifMenu = document.getElementById("notif-menu");
+      if (notifBtn && notifMenu) {
+        notifBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          notifMenu.classList.toggle("hidden");
+        });
+      }
+
+      // Close dropdowns on outside click
+      document.addEventListener("click", (e) => {
+        if (userMenu && !userMenu.contains(e.target) && userBtn && !userBtn.contains(e.target)) {
+          userMenu.classList.add("hidden");
+        }
+        if (notifMenu && !notifMenu.contains(e.target) && notifBtn && !notifBtn.contains(e.target)) {
+          notifMenu.classList.add("hidden");
+        }
+      });
+
+      // Mark all read action
+      const markAllReadBtn = document.getElementById("mark-all-read-btn");
+      if (markAllReadBtn) {
+        markAllReadBtn.addEventListener("click", async () => {
+          await fetch("/api/notifications/read-all", { method: "POST" });
+          window.location.reload();
+        });
+      }
+
+      // Mobile drawer toggle
+      const mobileBtn = document.getElementById("mobile-menu-btn");
+      const mobileDrawer = document.getElementById("mobile-drawer");
+      const hamburgerIcon = document.getElementById("hamburger-icon");
+      const closeIcon = document.getElementById("close-icon");
+      if (mobileBtn && mobileDrawer) {
+        mobileBtn.addEventListener("click", () => {
+          mobileDrawer.classList.toggle("hidden");
+          hamburgerIcon.classList.toggle("hidden");
+          closeIcon.classList.toggle("hidden");
+        });
+      }
+
+      // Chatbot Assistant logic
+      const chatbotToggle = document.getElementById("chatbot-toggle");
+      const chatbotPanel = document.getElementById("chatbot-panel");
+      const chatbotClose = document.getElementById("chatbot-close");
+      const chatbotForm = document.getElementById("chatbot-form");
+      const chatbotInput = document.getElementById("chatbot-input");
+      const chatbotMessages = document.getElementById("chatbot-messages");
+
+      const chatHistory = [
+        { role: "assistant", content: "Hi! I'm here to help with Backseat rides, voluntary charity donations, rider QR codes, and safety guidelines." }
+      ];
+
+      function appendBubble(role, text, links) {
+        const row = document.createElement("div");
+        row.className = "flex " + (role === "user" ? "justify-end" : "justify-start");
+        const box = document.createElement("div");
+        box.className = "max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm " +
+          (role === "user" ? "bg-ink text-on-ink" : "border border-paper-line bg-white text-text");
+        box.textContent = text;
+
+        if (links && links.length) {
+          const wrap = document.createElement("div");
+          wrap.className = "mt-2.5 flex flex-wrap gap-1.5";
+          links.forEach((l) => {
+            const a = document.createElement("a");
+            a.href = l.href;
+            a.textContent = l.label;
+            a.className = "rounded-full bg-marigold-pale px-2.5 py-1 text-xs font-bold text-ink hover:bg-marigold transition-colors";
+            wrap.appendChild(a);
+          });
+          box.appendChild(wrap);
+        }
+
+        row.appendChild(box);
+        chatbotMessages.appendChild(row);
+        chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+      }
+
+      async function sendChatMessage(text) {
+        const content = text.trim();
+        if (!content) return;
+        chatHistory.push({ role: "user", content });
+        appendBubble("user", content);
+        chatbotInput.value = "";
+
+        try {
+          const res = await fetch("/api/chatbot", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ messages: chatHistory }),
+          });
+          const data = await res.json();
+          const reply = data.answer || "I'm sorry, I could not process that request right now.";
+          chatHistory.push({ role: "assistant", content: reply });
+          appendBubble("assistant", reply, data.links || []);
+        } catch (err) {
+          appendBubble("assistant", "We had trouble reaching the assistant. Please try again.");
+        }
+      }
+
+      if (chatbotToggle && chatbotPanel) {
+        chatbotToggle.addEventListener("click", () => {
+          chatbotPanel.classList.toggle("hidden");
+          chatbotPanel.classList.toggle("flex");
+        });
+        if (chatbotClose) {
+          chatbotClose.addEventListener("click", () => {
+            chatbotPanel.classList.add("hidden");
+            chatbotPanel.classList.remove("flex");
+          });
+        }
+        if (chatbotForm) {
+          chatbotForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            sendChatMessage(chatbotInput.value);
+          });
+        }
+        document.querySelectorAll("[data-suggestion]").forEach((btn) => {
+          btn.addEventListener("click", () => sendChatMessage(btn.dataset.suggestion));
+        });
+      }
+    });
   </script>
 </body>
 </html>
