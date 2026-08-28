@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -13,7 +14,6 @@ const schema = z.object({
     .regex(/^\+?[0-9]{10,15}$/, "Enter a valid phone number")
     .optional()
     .or(z.literal("")),
-  password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
 export async function POST(req: Request) {
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const { name, email, password } = parsed.data;
+  const { name, email } = parsed.data;
   const phone = parsed.data.phone || undefined;
 
   const existing = await prisma.user.findFirst({
@@ -39,12 +39,14 @@ export async function POST(req: Request) {
     );
   }
 
+  // Riders/passengers log in with an emailed OTP, never a password — this hash
+  // is an unguessable placeholder to satisfy the schema, never used to authenticate.
   const user = await prisma.user.create({
     data: {
       name,
       email,
       phone,
-      passwordHash: await hashPassword(password),
+      passwordHash: await hashPassword(randomBytes(32).toString("hex")),
     },
   });
 

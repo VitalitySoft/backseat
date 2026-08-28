@@ -15,12 +15,41 @@ interface NotificationItem {
   createdAt: string;
 }
 
+function playChime() {
+  try {
+    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const now = ctx.currentTime;
+    const compressor = ctx.createDynamicsCompressor();
+    compressor.connect(ctx.destination);
+    [880, 1320].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      const start = now + i * 0.12;
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.7, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.45);
+      osc.connect(gain);
+      gain.connect(compressor);
+      osc.start(start);
+      osc.stop(start + 0.5);
+    });
+    setTimeout(() => ctx.close(), 1000);
+  } catch {
+    // Autoplay/audio can be blocked by the browser — fail silently.
+  }
+}
+
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const prevUnreadRef = useRef<number | null>(null);
 
   async function load() {
     const res = await fetch("/api/notifications");
@@ -29,11 +58,15 @@ export function NotificationBell() {
     setNotifications(data.notifications);
     setUnreadCount(data.unreadCount);
     setLoaded(true);
+    if (prevUnreadRef.current !== null && data.unreadCount > prevUnreadRef.current) {
+      playChime();
+    }
+    prevUnreadRef.current = data.unreadCount;
   }
 
   useEffect(() => {
     load();
-    const interval = setInterval(load, 30000);
+    const interval = setInterval(load, 4000);
     return () => clearInterval(interval);
   }, []);
 

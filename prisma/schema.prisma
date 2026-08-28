@@ -192,6 +192,18 @@ model Notification {
   createdAt DateTime @default(now())
 }
 
+model OtpCode {
+  id          String    @id @default(cuid())
+  email       String
+  codeHash    String
+  attempts    Int       @default(0)
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([email])
+}
+
 model AuditLog {
   id         String   @id @default(cuid())
   actorId    String?
