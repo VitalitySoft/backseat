@@ -23,6 +23,9 @@ from .models import (
     Block,
     Campaign,
     Charity,
+    ChatbotDocument,
+    ChatbotDocumentChunk,
+    ChatbotUnknownQuestion,
     Donation,
     Message,
     Notification,
@@ -1582,57 +1585,410 @@ def api_sos(request):
     return JsonResponse({"ok": True, "message": "Emergency SOS logged. Contacting emergency services."})
 
 
+# ---------------------------------------------------------------------------
+# Chatbot helpers (ported from src/lib/chatbot.ts + src/lib/chatbot-documents.ts)
+# ---------------------------------------------------------------------------
+
+_CHATBOT_STOP_WORDS = {
+    "i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your",
+    "yours", "yourself", "yourselves", "he", "him", "his", "himself", "she", "her",
+    "hers", "herself", "it", "its", "itself", "they", "them", "their", "theirs",
+    "themselves", "what", "which", "who", "whom", "this", "that", "these", "those",
+    "am", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had",
+    "having", "do", "does", "did", "doing", "a", "an", "the", "and", "but", "if",
+    "or", "because", "as", "until", "while", "of", "at", "by", "for", "with",
+    "about", "against", "between", "into", "through", "during", "before", "after",
+    "above", "below", "to", "from", "up", "down", "in", "out", "on", "off", "over",
+    "under", "again", "further", "then", "once", "here", "there", "when", "where",
+    "why", "how", "all", "any", "both", "each", "few", "more", "most", "other",
+    "some", "such", "no", "nor", "not", "only", "own", "same", "so", "than", "too",
+    "very", "s", "t", "can", "will", "just", "don", "should", "now",
+}
+
+
+def _chatbot_normalize_word(word):
+    w = word.lower().strip()
+    if len(w) <= 3:
+        return w
+    if w.endswith("ies"):
+        return w[:-3] + "y"
+    if w.endswith("ing"):
+        return w[:-3]
+    if w.endswith("ed"):
+        return w[:-2]
+    if w.endswith("s") and not w.endswith("ss"):
+        return w[:-1]
+    return w
+
+
+def _chatbot_tokenize(text):
+    import re
+    if not text:
+        return []
+    words = re.sub(r"[^a-z0-9\s]", " ", text.lower()).split()
+    return [_chatbot_normalize_word(w) for w in words if len(w) > 1 and w not in _CHATBOT_STOP_WORDS]
+
+
+def _chatbot_format_content(content):
+    """Strip markdown syntax for clean plain-text answers."""
+    import re
+    lines = content.replace("\r\n", "\n").split("\n")
+    out = []
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        heading = re.match(r"^#{1,6}\s+(.+)$", line)
+        if heading:
+            out.append(re.sub(r"\*\*(.*?)\*\*|__(.*?)__|\`([^\`]+)\`|\[(.*?)\]\([^)]*\)", lambda m: m.group(1) or m.group(2) or m.group(3) or m.group(4), heading.group(1)).strip())
+            continue
+        cleaned = re.sub(r"\*\*(.*?)\*\*|__(.*?)__|\`([^\`]+)\`|\[(.*?)\]\([^)]*\)", lambda m: m.group(1) or m.group(2) or m.group(3) or m.group(4), line)
+        out.append(re.sub(r"^[-*+]\s+", "", cleaned))
+    result = "\n".join(out)
+    import re as _re
+    return _re.sub(r"\n{3,}", "\n\n", result).strip()
+
+
+def _chatbot_score_chunk(chunk_content, question, q_words, q_word_set):
+    """Score a document chunk against the question. Returns (score, answer)."""
+    import re
+    score = 0
+    trimmed = chunk_content.strip()
+
+    # Try JSON structured scoring first
+    if trimmed.startswith(("[", "{")):
+        try:
+            parsed = json.loads(trimmed)
+            items = parsed if isinstance(parsed, list) else [parsed]
+            best_score, best_answer = 0, ""
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                raw_kw = item.get("keywords", [])
+                kws = raw_kw if isinstance(raw_kw, list) else ([raw_kw] if raw_kw else [])
+                raw_q = " ".join(filter(None, [item.get("question"), item.get("topic"), item.get("title")]))
+                raw_a = " ".join(filter(None, [item.get("answer"), item.get("content"), item.get("description"), item.get("text")]))
+                norm_q = question.lower().strip()
+                for kw in kws:
+                    kw = str(kw).lower().strip()
+                    if not kw:
+                        continue
+                    if norm_q == kw:
+                        score += 100
+                    elif len(kw) > 2 and kw in norm_q:
+                        score += 40 + len(kw.split()) * 10
+                    else:
+                        kw_toks = _chatbot_tokenize(kw)
+                        matches = sum(1 for w in kw_toks if w in q_word_set)
+                        if kw_toks and matches == len(kw_toks):
+                            score += 25 + matches * 8
+                        elif matches:
+                            score += matches * 6
+                title_text = raw_q.lower().strip()
+                if title_text:
+                    title_toks = _chatbot_tokenize(title_text)
+                    m = sum(1 for w in title_toks if w in q_word_set)
+                    if title_toks and m == len(title_toks):
+                        score += 20 + m * 6
+                    elif m:
+                        score += m * 5
+                if score > best_score:
+                    best_score = score
+                    best_answer = _chatbot_format_content(raw_a or raw_q)
+            if best_score > 0:
+                return best_score, best_answer
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    # Plain text / markdown scoring
+    lines = chunk_content.split("\n")
+    heading_line = next((l for l in lines if l.strip().startswith("#")), "")
+    heading_text = re.sub(r"^#+\s*", "", heading_line).lower().strip()
+    if heading_text:
+        if question.lower().strip() == heading_text:
+            score += 100
+        elif len(heading_text) > 2 and heading_text in question.lower():
+            score += 45 + len(heading_text.split()) * 10
+        else:
+            h_words = _chatbot_tokenize(heading_text)
+            m = sum(1 for w in h_words if w in q_word_set)
+            if h_words and m == len(h_words):
+                score += 30 + m * 10
+            elif m:
+                score += m * 8
+
+    body_words = set(_chatbot_tokenize(chunk_content))
+    score += sum(3 for w in q_words if w in body_words)
+
+    return score, _chatbot_format_content(chunk_content)
+
+
+def _answer_from_documents(question):
+    """Search ChatbotDocumentChunks for the best answer. Returns dict or None."""
+    q_words = _chatbot_tokenize(question)
+    if not q_words:
+        return None
+    q_word_set = set(q_words)
+
+    chunks = (
+        ChatbotDocumentChunk.objects
+        .select_related("document")
+        .order_by("-created_at")[:500]
+    )
+    if not chunks.exists():
+        return None
+
+    best_score, best_answer, best_ts = 0, "", 0
+    for chunk in chunks:
+        score, answer = _chatbot_score_chunk(chunk.content, question, q_words, q_word_set)
+        if score < 3 or not answer.strip():
+            continue
+        ts = chunk.created_at.timestamp()
+        if score > best_score or (score == best_score and ts > best_ts):
+            best_score, best_answer, best_ts = score, answer, ts
+
+    if best_score < 3 or not best_answer:
+        return None
+    return {"answer": best_answer, "links": [], "found": True, "source": "document"}
+
+
+def _split_document_into_chunks(content, file_name=""):
+    """Port of splitDocumentIntoChunks from chatbot-documents.ts."""
+    import re
+    normalized = content.replace("\r\n", "\n").strip()
+    if not normalized:
+        return []
+
+    ext = file_name.rsplit(".", 1)[-1].lower() if "." in file_name else ""
+
+    # 1. JSON
+    if ext == "json" or normalized.startswith(("[", "{")):
+        try:
+            data = json.loads(normalized)
+            if isinstance(data, list):
+                chunks = []
+                for item in data:
+                    chunks.append(json.dumps(item) if isinstance(item, dict) else str(item).strip())
+                return [c for c in chunks if c]
+            if isinstance(data, dict):
+                chunks = []
+                for key, value in data.items():
+                    if isinstance(value, list):
+                        for item in value:
+                            if isinstance(item, dict):
+                                chunks.append(json.dumps({"section": key, **item}))
+                            else:
+                                chunks.append(f"### {key}\n{item}")
+                    elif isinstance(value, dict):
+                        chunks.append(json.dumps({"section": key, **value}))
+                    else:
+                        chunks.append(f"### {key}\n{value}")
+                if chunks:
+                    return chunks
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    # 2. CSV
+    if ext == "csv" and "," in normalized:
+        lines = [l.strip() for l in normalized.splitlines() if l.strip()]
+        if len(lines) > 1:
+            headers = [h.strip('"\'') for h in lines[0].split(",")]
+            chunks = []
+            for row_line in lines[1:]:
+                vals = [v.strip('"\'') for v in row_line.split(",")]
+                row = "\n".join(
+                    f"{headers[i]}: {vals[i]}" for i in range(len(headers))
+                    if i < len(vals) and vals[i]
+                )
+                if row:
+                    chunks.append(row)
+            if chunks:
+                return chunks
+
+    # 3. Markdown headings
+    heading_sections = [p.strip() for p in re.split(r"\n(?=#{1,6}\s+)", normalized) if p.strip()]
+    if len(heading_sections) > 1:
+        return heading_sections
+
+    # 4. Q&A pattern
+    qa_sections = [p.strip() for p in re.split(r"\n(?=(?:Q|Question|FAQ)\s*[:#\d.\-])", normalized, flags=re.IGNORECASE) if p.strip()]
+    if len(qa_sections) > 1:
+        return qa_sections
+
+    # 5. Paragraphs
+    paragraphs = [p.strip() for p in re.split(r"\n{2,}", normalized) if p.strip()]
+    if len(paragraphs) > 1:
+        return paragraphs
+
+    # 6. Long unbroken text — sentence chunking
+    if len(normalized) > 1000:
+        sentences = re.split(r"(?<=[.!?])\s+", normalized)
+        chunks, current = [], ""
+        for sentence in sentences:
+            if len(current) + len(sentence) + 1 > 800:
+                if current.strip():
+                    chunks.append(current.strip())
+                current = sentence
+            else:
+                current = (current + " " + sentence).strip()
+        if current.strip():
+            chunks.append(current.strip())
+        if len(chunks) > 1:
+            return chunks
+
+    return [normalized]
+
+
+# Expanded application knowledge base (ported from chatbot.ts APPLICATION_KNOWLEDGE)
+_APPLICATION_KNOWLEDGE = [
+    {
+        "keywords": ["home", "homepage", "landing page", "main page", "start page"],
+        "answer": "The homepage introduces Backseat, shows live platform stats, explains that rides are free, and points people toward finding a ride, offering a ride, and learning how donations work.",
+        "links": [{"label": "Home", "href": "/"}],
+    },
+    {
+        "keywords": ["navigation", "menu", "navbar", "header", "footer", "where can i go", "pages"],
+        "answer": "The main navigation links to Find a Ride, Offer a Ride, How It Works, Charity Impact, Top Contributors, and About Us. After login, users also get dashboard links for trips, rides, donations, payments, impact, profile, and QR tools.",
+        "links": [{"label": "Dashboard", "href": "/dashboard"}],
+    },
+    {
+        "keywords": ["application flow", "app flow", "user flow", "workflow", "process in app", "full flow"],
+        "answer": "Backseat has two main flows. Passengers register, search for a matching route, send a join request, travel if accepted, then may donate voluntarily through the rider charity QR. Riders create a profile, submit vehicle details for admin verification, offer rides, manage join requests, and show their charity QR after a completed trip.",
+        "links": [{"label": "Find a Ride", "href": "/find-a-ride"}, {"label": "Offer a Ride", "href": "/offer-a-ride"}],
+    },
+    {
+        "keywords": ["roles", "user roles", "passenger", "rider", "admin", "who can use"],
+        "answer": "The app supports passengers, riders, and admins. Passengers find rides, request seats, chat, donate, and manage trips. Riders offer verified rides, manage requests, maintain a charity QR, and track impact. Admins verify riders and vehicles, manage users, charities, rides, donations, reports, fraud flags, leaderboards, and audit logs.",
+        "links": [{"label": "Admin Portal", "href": "/admin"}],
+    },
+    {
+        "keywords": ["features", "functionality", "what features", "modules", "what can app do"],
+        "answer": "Backseat includes registration, login, rider onboarding, vehicle verification, ride search, ride offers, join requests, ride chat, notifications, charity QR donations, receipts, impact tracking, payment history, rider profiles, reports, blocks, SOS alerts, leaderboard controls, and admin tools.",
+        "links": [{"label": "Safety Centre", "href": "/safety"}],
+    },
+    {
+        "keywords": ["find", "search", "join", "book", "look for ride"],
+        "answer": "To find a ride, go to Find a Ride, filter by pickup city or vehicle type, and tap View & Join on any available trip. You can chat with the rider once your request is accepted.",
+        "links": [{"label": "Find a Ride", "href": "/find-a-ride"}, {"label": "How It Works", "href": "/how-it-works"}],
+    },
+    {
+        "keywords": ["offer", "publish", "driver", "seat", "carpool", "share seat"],
+        "answer": "If you're already travelling alone, tap Offer a Ride to publish your route and spare seats. Backseat rides are 100% free — you cannot set or receive any fares.",
+        "links": [{"label": "Offer a Ride", "href": "/offer-a-ride"}, {"label": "Become a Rider", "href": "/become-a-rider"}],
+    },
+    {
+        "keywords": ["donate", "charity", "upi", "payment", "fare", "cost", "money"],
+        "answer": "Backseat rides never have a fare. At the end of the trip, passengers may voluntarily scan the rider's charity QR code and donate any amount directly to registered charities via UPI.",
+        "links": [{"label": "Charity Impact", "href": "/charity-impact"}, {"label": "Top Contributors", "href": "/top-contributors"}],
+    },
+    {
+        "keywords": ["qr", "code", "sticker", "scan"],
+        "answer": "Verified riders get a dedicated Charity QR Code in their dashboard. Passengers scan this code after the trip to contribute voluntarily to our charity partners.",
+        "links": [{"label": "Charity QR", "href": "/dashboard/qr"}],
+    },
+    {
+        "keywords": ["safe", "safety", "sos", "emergency", "verify", "police", "112"],
+        "answer": "Safety is core to Backseat: all riders undergo vehicle and identity verification before sharing seats. In an emergency, our Safety Centre provides immediate access to India's national emergency helpline (112) and instant SOS logging.",
+        "links": [{"label": "Safety Centre", "href": "/safety"}, {"label": "Community Guidelines", "href": "/community-guidelines"}],
+    },
+    {
+        "keywords": ["admin", "verify vehicle", "moderation", "audit"],
+        "answer": "Platform administrators can verify rider vehicles, moderate ride offers, handle donation refunds, update charity UPI IDs, and review audit logs in the Admin Portal.",
+        "links": [{"label": "Admin Portal", "href": "/admin"}],
+    },
+]
+
+_CHATBOT_FALLBACK = (
+    "I do not have a clear answer for that yet, but I have saved the question for "
+    "review so the Backseat team can add it to the assistant."
+)
+
+
+def _answer_from_knowledge_base(question):
+    """Score APPLICATION_KNOWLEDGE entries and return the best match or None."""
+    import re
+    q_words = _chatbot_tokenize(question)
+    q_stems = set(q_words)
+    q_word_set = set(re.sub(r"[^a-z0-9\s]", " ", question.lower()).split())
+
+    def _score(entry):
+        total = 0
+        multi = 0
+        for kw in entry["keywords"]:
+            parts = [p for p in kw.lower().split() if p not in _CHATBOT_STOP_WORDS]
+            if parts and all(p in q_word_set or _chatbot_normalize_word(p) in q_stems for p in parts):
+                total += 3 if len(parts) > 1 else 1
+                if len(parts) > 1:
+                    multi += 1
+        return total, multi
+
+    scored = [(_score(e), e) for e in _APPLICATION_KNOWLEDGE]
+    scored = [s for s in scored if s[0][0] > 0]
+    if not scored:
+        return None
+    best = max(scored, key=lambda x: (x[0][0], x[0][1]))
+    return best[1]
+
+
 @csrf_exempt
 def api_chatbot(request):
     data = body_json(request)
     messages_in = data.get("messages") or [{"role": "user", "content": data.get("message", "")}]
-    question = next((m.get("content", "") for m in reversed(messages_in) if m.get("role") == "user"), "").lower()
+    question = next(
+        (m.get("content", "") for m in reversed(messages_in) if m.get("role") == "user"), ""
+    ).strip()
 
-    knowledge_base = [
-        (
-            ["find", "search", "join", "book", "passenger", "look for ride"],
-            "To find a ride, go to **Find a Ride**, filter by pickup city or vehicle type, and tap **View & Join** on any available trip. You can chat with the rider once requested.",
-            [{"label": "Find a Ride", "href": "/find-a-ride"}, {"label": "How It Works", "href": "/how-it-works"}],
-        ),
-        (
-            ["offer", "publish", "driver", "seat", "carpool", "share seat"],
-            "If you're already travelling alone, tap **Offer a Ride** to publish your route and spare seats. Backseat rides are 100% free — you cannot set or receive any fares.",
-            [{"label": "Offer a Ride", "href": "/offer-a-ride"}, {"label": "Become a Rider", "href": "/become-a-rider"}],
-        ),
-        (
-            ["donate", "charity", "upi", "payment", "fare", "cost", "money"],
-            "Backseat rides never have a fare. At the end of the trip, passengers may voluntarily scan the rider's charity QR code and donate any amount directly to registered charities via UPI.",
-            [{"label": "Charity Impact", "href": "/charity-impact"}, {"label": "Top Contributors", "href": "/top-contributors"}],
-        ),
-        (
-            ["qr", "code", "sticker", "scan"],
-            "Verified riders get a dedicated **Charity QR Code** in their dashboard. Passengers scan this code after the trip to contribute voluntarily to our charity partners.",
-            [{"label": "Charity QR", "href": "/dashboard/qr"}],
-        ),
-        (
-            ["safe", "safety", "sos", "emergency", "verify", "police", "112"],
-            "Safety is core to Backseat: all riders undergo vehicle and identity verification before sharing seats. In an emergency, our Safety Centre provides immediate access to India's national emergency helpline (112) and instant SOS logging.",
-            [{"label": "Safety Centre", "href": "/safety"}, {"label": "Community Guidelines", "href": "/community-guidelines"}],
-        ),
-        (
-            ["admin", "verify vehicle", "moderation", "audit"],
-            "Platform administrators can verify rider vehicles, moderate ride offers, handle donation refunds, update charity UPI IDs, and review audit logs in the Admin Portal.",
-            [{"label": "Admin Portal", "href": "/admin"}],
-        ),
-    ]
+    # 1. Try document knowledge base first
+    if question:
+        doc_result = _answer_from_documents(question)
+        if doc_result:
+            return JsonResponse(doc_result)
 
-    best = max(knowledge_base, key=lambda item: sum(1 for kw in item[0] if kw in question), default=None)
-    if not question.strip() or not best or sum(1 for kw in best[0] if kw in question) == 0:
+    # 2. Try structured application knowledge base
+    entry = _answer_from_knowledge_base(question) if question else None
+    if entry:
         return JsonResponse({
-            "answer": "I'm the Backseat Assistant. I can help with finding rides, offering spare seats, voluntary charity donations, rider QR codes, safety guidelines, and account setup. How can I help you today?",
+            "answer": entry["answer"],
+            "links": entry.get("links", []),
+            "found": True,
+            "source": "application",
+        })
+
+    # 3. Fallback — log the unknown question
+    if question:
+        try:
+            user_profile = profile_for(request.user) if request.user.is_authenticated else None
+            ChatbotUnknownQuestion.objects.create(
+                question=question,
+                normalized_text=question.lower(),
+                fallback_answer=_CHATBOT_FALLBACK,
+                user_profile=user_profile,
+            )
+        except Exception:
+            pass
+
+    if not question:
+        return JsonResponse({
+            "answer": (
+                "I'm the Backseat Assistant. I can help with finding rides, offering spare seats, "
+                "voluntary charity donations, rider QR codes, safety guidelines, and account setup. "
+                "How can I help you today?"
+            ),
             "links": [
                 {"label": "How It Works", "href": "/how-it-works"},
                 {"label": "Find a Ride", "href": "/find-a-ride"},
                 {"label": "Offer a Ride", "href": "/offer-a-ride"},
             ],
+            "found": False,
+            "source": "fallback",
         })
 
-    return JsonResponse({"answer": best[1], "links": best[2]})
+    return JsonResponse({
+        "answer": _CHATBOT_FALLBACK,
+        "links": [],
+        "found": False,
+        "source": "fallback",
+    })
 
 
 @csrf_exempt
@@ -1680,3 +2036,191 @@ def api_admin_update(request, kind, item_id):
         return json_error("Unknown admin action", 404)
     audit(request, f"Admin API updated {kind}", kind, item_id)
     return JsonResponse({"ok": True})
+
+
+# ---------------------------------------------------------------------------
+# Admin: Chatbot Document Management
+# (ported from src/app/api/admin/chatbot-documents/route.ts)
+# ---------------------------------------------------------------------------
+
+_ACCEPTED_DOC_EXTENSIONS = {"txt", "md", "markdown", "json", "csv", "pdf", "docx", "xlsx", "xls"}
+_TEXT_EXTENSIONS = {"txt", "md", "markdown", "json", "csv"}
+_MAX_DOC_SIZE = 5 * 1024 * 1024  # 5 MB
+
+
+def _extract_document_text(uploaded_file, extension):
+    """Extract plain text from an uploaded file depending on its extension."""
+    if extension in _TEXT_EXTENSIONS:
+        return uploaded_file.read().decode("utf-8", errors="replace")
+
+    raw = uploaded_file.read()
+
+    if extension == "docx":
+        try:
+            import docx as _docx
+            import io
+            doc = _docx.Document(io.BytesIO(raw))
+            return "\n".join(p.text for p in doc.paragraphs)
+        except ImportError:
+            raise ValueError("python-docx is not installed. Run: pip install python-docx")
+
+    if extension == "pdf":
+        try:
+            import pdfplumber
+            import io
+            with pdfplumber.open(io.BytesIO(raw)) as pdf:
+                return "\n".join(page.extract_text() or "" for page in pdf.pages)
+        except ImportError:
+            raise ValueError("pdfplumber is not installed. Run: pip install pdfplumber")
+
+    if extension in {"xlsx", "xls"}:
+        try:
+            import openpyxl
+            import io
+            wb = openpyxl.load_workbook(io.BytesIO(raw), read_only=True, data_only=True)
+            parts = []
+            for sheet in wb.worksheets:
+                rows = list(sheet.iter_rows(values_only=True))
+                if not rows:
+                    continue
+                headers = [str(c) if c is not None else "" for c in rows[0]]
+                sheet_lines = [sheet.title]
+                for row in rows[1:]:
+                    cells = [f"{headers[i]}: {row[i]}" for i in range(len(headers)) if i < len(row) and row[i] is not None]
+                    if cells:
+                        sheet_lines.append(", ".join(cells))
+                parts.append("\n".join(sheet_lines))
+            return "\n\n".join(parts)
+        except ImportError:
+            raise ValueError("openpyxl is not installed. Run: pip install openpyxl")
+
+    return ""
+
+
+@csrf_exempt
+@admin_required
+def api_admin_chatbot_documents(request):
+    # ---- POST: upload a new document ----
+    if request.method == "POST":
+        uploaded = request.FILES.get("file")
+        if not uploaded:
+            return json_error("Please upload a document file.", 400)
+
+        ext = uploaded.name.rsplit(".", 1)[-1].lower() if "." in uploaded.name else ""
+        if ext not in _ACCEPTED_DOC_EXTENSIONS:
+            return json_error("Upload TXT, MD, JSON, CSV, PDF, DOCX, XLS, or XLSX.", 400)
+
+        if uploaded.size > _MAX_DOC_SIZE:
+            return json_error("Document must be 5 MB or smaller.", 400)
+
+        try:
+            content = _extract_document_text(uploaded, ext).strip()
+        except ValueError as exc:
+            return json_error(str(exc), 400)
+        except Exception:
+            return json_error(
+                "Could not read this document. Try exporting it as DOCX, PDF, or Markdown.", 400
+            )
+
+        if len(content) < 20:
+            return json_error(
+                "Document does not contain enough readable text to search.", 400
+            )
+
+        chunks = _split_document_into_chunks(content, uploaded.name)
+        profile = profile_for(request.user)
+
+        doc = ChatbotDocument.objects.create(
+            file_name=uploaded.name,
+            content_type=uploaded.content_type or ext,
+            content=content,
+            uploaded_by=profile,
+        )
+        ChatbotDocumentChunk.objects.bulk_create([
+            ChatbotDocumentChunk(document=doc, content=chunk, position=i)
+            for i, chunk in enumerate(chunks)
+        ])
+
+        AuditLog.objects.create(
+            actor=profile,
+            action="CHATBOT_DOCUMENT_UPLOADED",
+            target_type="ChatbotDocument",
+            target_id=str(doc.id),
+            metadata_json=json.dumps({
+                "fileName": doc.file_name,
+                "chunkCount": len(chunks),
+                "extension": ext,
+            }),
+        )
+        return JsonResponse({"id": doc.id, "fileName": doc.file_name, "chunkCount": len(chunks)}, status=201)
+
+    # ---- DELETE: remove a document ----
+    if request.method == "DELETE":
+        doc_id = request.GET.get("id")
+        if not doc_id:
+            return json_error("Document ID is required.", 400)
+        doc = get_object_or_404(ChatbotDocument, id=doc_id)
+        profile = profile_for(request.user)
+        file_name = doc.file_name
+        doc.delete()
+        AuditLog.objects.create(
+            actor=profile,
+            action="CHATBOT_DOCUMENT_DELETED",
+            target_type="ChatbotDocument",
+            target_id=str(doc_id),
+            metadata_json=json.dumps({"fileName": file_name}),
+        )
+        return JsonResponse({"ok": True, "id": doc_id})
+
+    # ---- PATCH: re-index all documents ----
+    if request.method == "PATCH":
+        documents = ChatbotDocument.objects.prefetch_related("chunks").all()
+        total_chunks = 0
+        for doc in documents:
+            new_chunks = _split_document_into_chunks(doc.content, doc.file_name)
+            doc.chunks.all().delete()
+            ChatbotDocumentChunk.objects.bulk_create([
+                ChatbotDocumentChunk(document=doc, content=chunk, position=i)
+                for i, chunk in enumerate(new_chunks)
+            ])
+            total_chunks += len(new_chunks)
+
+        profile = profile_for(request.user)
+        result = {"documentCount": documents.count(), "totalChunks": total_chunks}
+        AuditLog.objects.create(
+            actor=profile,
+            action="CHATBOT_DOCUMENTS_REINDEXED",
+            target_type="ChatbotDocument",
+            metadata_json=json.dumps(result),
+        )
+        return JsonResponse(result)
+
+    return json_error("Method not allowed.", 405)
+
+
+# ---- Template view: Admin chatbot documents page ----
+def admin_chatbot_documents(request):
+    if not request.user.is_authenticated:
+        return redirect("login")
+    profile = profile_for(request.user)
+    if profile.role != "ADMIN":
+        return redirect("home")
+
+    documents = (
+        ChatbotDocument.objects
+        .prefetch_related("chunks")
+        .select_related("uploaded_by__user")
+        .order_by("-created_at")
+    )
+    docs_with_counts = [
+        {
+            "doc": doc,
+            "chunk_count": doc.chunks.count(),
+            "uploader_name": doc.uploaded_by.user.get_full_name() if doc.uploaded_by else "",
+        }
+        for doc in documents
+    ]
+    return render(request, "backseat/admin_chatbot_documents.html", {
+        "docs": docs_with_counts,
+        "tab": "chatbot-documents",
+    })

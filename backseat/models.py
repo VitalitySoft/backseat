@@ -119,3 +119,64 @@ class AuditLog(models.Model):
     target_id = models.CharField(max_length=80, blank=True)
     metadata_json = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+# status: NEW | REVIEWED | ADDED_TO_FAQ | DISMISSED
+class ChatbotUnknownQuestion(models.Model):
+    question = models.TextField()
+    normalized_text = models.TextField()
+    fallback_answer = models.TextField(blank=True)
+    user_profile = models.ForeignKey(
+        UserProfile, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="chatbot_unknown_questions"
+    )
+    status = models.CharField(max_length=30, default="NEW")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["status"]),
+            models.Index(fields=["created_at"]),
+        ]
+
+    def __str__(self):
+        return self.question[:80]
+
+
+class ChatbotDocument(models.Model):
+    file_name = models.CharField(max_length=260)
+    content_type = models.CharField(max_length=120)
+    content = models.TextField()
+    uploaded_by = models.ForeignKey(
+        UserProfile, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="chatbot_documents"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["created_at"]),
+        ]
+
+    def __str__(self):
+        return self.file_name
+
+
+class ChatbotDocumentChunk(models.Model):
+    document = models.ForeignKey(
+        ChatbotDocument, on_delete=models.CASCADE, related_name="chunks"
+    )
+    content = models.TextField()
+    position = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["position"]
+        indexes = [
+            models.Index(fields=["document"]),
+        ]
+
+    def __str__(self):
+        return f"Chunk {self.position} of {self.document.file_name}"
