@@ -24,28 +24,30 @@ model User {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  riderProfile   RiderProfile?
-  donationsMade  Donation[]     @relation("PassengerDonations")
-  rideJoins      RideJoin[]
-  reportsFiled   Report[]       @relation("ReportsFiled")
-  reportsAgainst Report[]       @relation("ReportsAgainst")
-  blocksMade     Block[]        @relation("BlocksMade")
-  blocksAgainst  Block[]        @relation("BlocksAgainst")
-  notifications  Notification[]
-  auditLogs      AuditLog[]
-  messagesSent   Message[]
+  riderProfile            RiderProfile?
+  donationsMade           Donation[]               @relation("PassengerDonations")
+  rideJoins               RideJoin[]
+  reportsFiled            Report[]                 @relation("ReportsFiled")
+  reportsAgainst          Report[]                 @relation("ReportsAgainst")
+  blocksMade              Block[]                  @relation("BlocksMade")
+  blocksAgainst           Block[]                  @relation("BlocksAgainst")
+  notifications           Notification[]
+  auditLogs               AuditLog[]
+  messagesSent            Message[]
+  chatbotUnknownQuestions ChatbotUnknownQuestion[]
+  chatbotDocuments        ChatbotDocument[]
 }
 
 // vehicleType: TWO_WHEELER | FOUR_WHEELER
 model RiderProfile {
-  id                String   @id @default(cuid())
-  userId            String   @unique
-  user              User     @relation(fields: [userId], references: [id])
-  vehicleType       String
-  vehicleMake       String
-  vehicleModel      String
-  vehiclePlate      String
-  seatsAvailable    Int      @default(1)
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id])
+  vehicleType           String
+  vehicleMake           String
+  vehicleModel          String
+  vehiclePlate          String
+  seatsAvailable        Int      @default(1)
   isVehicleVerified     Boolean  @default(false)
   isSharingActive       Boolean  @default(false)
   hiddenFromLeaderboard Boolean  @default(false)
@@ -88,7 +90,7 @@ model Campaign {
 
 // status: ACTIVE | COMPLETED | CANCELLED
 model RideOffer {
-  id             String   @id @default(cuid())
+  id             String       @id @default(cuid())
   riderId        String
   rider          RiderProfile @relation(fields: [riderId], references: [id])
   vehicleType    String
@@ -96,10 +98,10 @@ model RideOffer {
   startLocation  String
   destination    String
   departureAt    DateTime?
-  status         String   @default("ACTIVE")
+  status         String       @default("ACTIVE")
   notes          String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   joins RideJoin[]
 }
@@ -132,24 +134,24 @@ model Message {
 
 // status: PENDING | SUCCESS | FAILED | REFUNDED
 model Donation {
-  id                       String    @id @default(cuid())
-  donationRef              String    @unique
+  id                       String        @id @default(cuid())
+  donationRef              String        @unique
   amount                   Float
   riderId                  String?
   rider                    RiderProfile? @relation("RiderDonations", fields: [riderId], references: [id])
   passengerId              String?
-  passenger                User?     @relation("PassengerDonations", fields: [passengerId], references: [id])
+  passenger                User?         @relation("PassengerDonations", fields: [passengerId], references: [id])
   rideJoinId               String?
-  rideJoin                 RideJoin? @relation(fields: [rideJoinId], references: [id])
+  rideJoin                 RideJoin?     @relation(fields: [rideJoinId], references: [id])
   charityId                String
-  charity                  Charity   @relation(fields: [charityId], references: [id])
+  charity                  Charity       @relation(fields: [charityId], references: [id])
   campaignId               String?
-  campaign                 Campaign? @relation(fields: [campaignId], references: [id])
-  status                   String    @default("PENDING")
-  paymentMethod            String    @default("UPI")
-  transactionRef           String?   @unique
+  campaign                 Campaign?     @relation(fields: [campaignId], references: [id])
+  status                   String        @default("PENDING")
+  paymentMethod            String        @default("UPI")
+  transactionRef           String?       @unique
   donorDisplayNameSnapshot String?
-  createdAt                DateTime  @default(now())
+  createdAt                DateTime      @default(now())
   completedAt              DateTime?
 
   @@index([riderId])
@@ -170,12 +172,12 @@ model Report {
 }
 
 model Block {
-  id         String   @id @default(cuid())
-  blockerId  String
-  blocker    User     @relation("BlocksMade", fields: [blockerId], references: [id])
-  blockedId  String
-  blocked    User     @relation("BlocksAgainst", fields: [blockedId], references: [id])
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  blockerId String
+  blocker   User     @relation("BlocksMade", fields: [blockerId], references: [id])
+  blockedId String
+  blocked   User     @relation("BlocksAgainst", fields: [blockedId], references: [id])
+  createdAt DateTime @default(now())
 
   @@unique([blockerId, blockedId])
 }
@@ -201,4 +203,46 @@ model AuditLog {
   targetId   String?
   metadata   String?
   createdAt  DateTime @default(now())
+}
+
+// status: NEW | REVIEWED | ADDED_TO_FAQ | DISMISSED
+model ChatbotUnknownQuestion {
+  id             String   @id @default(cuid())
+  question       String
+  normalizedText String
+  fallbackAnswer String?
+  userId         String?
+  user           User?    @relation(fields: [userId], references: [id])
+  status         String   @default("NEW")
+  createdAt      DateTime @default(now())
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([userId])
+}
+
+model ChatbotDocument {
+  id           String   @id @default(cuid())
+  fileName     String
+  contentType  String
+  content      String
+  uploadedById String?
+  uploadedBy   User?    @relation(fields: [uploadedById], references: [id])
+  createdAt    DateTime @default(now())
+
+  chunks ChatbotDocumentChunk[]
+
+  @@index([createdAt])
+  @@index([uploadedById])
+}
+
+model ChatbotDocumentChunk {
+  id         String          @id @default(cuid())
+  documentId String
+  document   ChatbotDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  content    String
+  position   Int
+  createdAt  DateTime        @default(now())
+
+  @@index([documentId])
 }

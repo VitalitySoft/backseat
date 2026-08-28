@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { answerBackseatQuestion } from "@/lib/chatbot";
+import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/session";
+import { answerFromChatbotDocuments } from "@/lib/chatbot-documents";
 
 const MessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
@@ -22,5 +25,35 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.json(answerBackseatQuestion(parsed.data.messages));
+  const latestQuestion = [...parsed.data.messages]
+    .reverse()
+    .find((message) => message.role === "user")
+    ?.content.trim() ?? "";
+
+  const documentResult = latestQuestion
+    ? await answerFromChatbotDocuments(latestQuestion)
+    : null;
+
+  if (documentResult) {
+    return NextResponse.json(documentResult);
+  }
+
+  const result = answerBackseatQuestion(parsed.data.messages);
+
+  if (latestQuestion && !result.found) {
+    const session = await getSession();
+
+    await prisma.chatbotUnknownQuestion.create({
+      data: {
+        question: latestQuestion,
+        normalizedText: latestQuestion.toLowerCase(),
+        fallbackAnswer: result.answer,
+        userId: session.userId,
+      },
+    }).catch((error) => {
+      console.error("Failed to log unknown chatbot question", error);
+    });
+  }
+
+  return NextResponse.json(result);
 }

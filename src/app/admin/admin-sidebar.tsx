@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   Trophy,
   ScrollText,
+  FileText,
 } from "lucide-react";
 
 const SECTIONS = [
@@ -27,6 +28,7 @@ const SECTIONS = [
   { href: "/admin/reports", label: "Reports", icon: Flag },
   { href: "/admin/fraud", label: "Fraud & Suspicious", icon: AlertTriangle },
   { href: "/admin/leaderboard", label: "Leaderboard", icon: Trophy },
+  { href: "/admin/chatbot-documents", label: "Chatbot Docs", icon: FileText },
   { href: "/admin/audit-log", label: "Audit Log", icon: ScrollText },
 ];
 

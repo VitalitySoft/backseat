@@ -38,3 +38,8 @@ export const SITE_TAGLINE = "Share Your Journey. Spread Kindness.";
 
 /** Suggested chips shown as tap-to-fill helpers only — never a minimum, default, or required amount. */
 export const DONATION_QUICK_AMOUNTS = [50, 100, 250, 500] as const;
+
+
+export const CUSTOMER_CARE_PHONE = "+919876543210";
+export const CUSTOMER_CARE_WHATSAPP = "919876543210";
+export const CUSTOMER_CARE_WHATSAPP_MESSAGE = "Hi Backseat support, I need help with a question the assistant could not answer.";

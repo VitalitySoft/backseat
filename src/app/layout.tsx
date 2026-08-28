@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     "A charity ride-sharing platform. Travelling alone? Offer your spare seat freely. If your companion wishes, they can donate any amount they choose to charity — never a fare, always their choice.",
 };
 
-export default async function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   const navUser: NavUser | null = user
     ? {

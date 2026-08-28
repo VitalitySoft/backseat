@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { FormEvent, useRef, useState } from "react";
-import { Bot, Loader2, MessageCircle, Send, X } from "lucide-react";
+import { Bot, Loader2, MessageCircle, Phone, Send, X } from "lucide-react";
+import { CUSTOMER_CARE_PHONE, CUSTOMER_CARE_WHATSAPP, CUSTOMER_CARE_WHATSAPP_MESSAGE } from "@/lib/constants";
 
 type Message = {
   role: "user" | "assistant";
   content: string;
   links?: { label: string; href: string }[];
+  showSupportActions?: boolean;
 };
 
 const STARTER_MESSAGES: Message[] = [
@@ -22,6 +24,19 @@ const SUGGESTIONS = [
   "How do donations work?",
   "How can I find a ride?",
 ];
+
+const FALLBACK_SUPPORT_TEXT = [
+  "I do not have a clear answer for that yet",
+  "I could not answer that yet",
+];
+
+function shouldShowSupportActions(answer: unknown, found: unknown) {
+  if (found === false) return true;
+  if (typeof answer !== "string") return true;
+  return FALLBACK_SUPPORT_TEXT.some((text) => answer.includes(text));
+}
+
+const whatsappUrl = `https://wa.me/${CUSTOMER_CARE_WHATSAPP}?text=${encodeURIComponent(CUSTOMER_CARE_WHATSAPP_MESSAGE)}`;
 
 export function ChatbotWidget() {
   const [open, setOpen] = useState(false);
@@ -48,12 +63,15 @@ export function ChatbotWidget() {
         }),
       });
       const data = await response.json();
+      const answer = data.answer ?? "I could not answer that yet.";
+
       setMessages((current) => [
         ...current,
         {
           role: "assistant",
-          content: data.answer ?? "I could not answer that yet.",
+          content: answer,
           links: data.links ?? [],
+          showSupportActions: shouldShowSupportActions(answer, data.found),
         },
       ]);
     } catch {
@@ -62,6 +80,7 @@ export function ChatbotWidget() {
         {
           role: "assistant",
           content: "I could not connect right now. Please try again in a moment.",
+          showSupportActions: true,
         },
       ]);
     } finally {
@@ -112,7 +131,7 @@ export function ChatbotWidget() {
                       : "border border-paper-line bg-white text-text"
                   }`}
                 >
-                  <p>{message.content}</p>
+                  <p className="whitespace-pre-line">{message.content}</p>
                   {!!message.links?.length && (
                     <div className="mt-3 flex flex-wrap gap-2">
                       {message.links.map((link) => (
@@ -125,6 +144,29 @@ export function ChatbotWidget() {
                           {link.label}
                         </Link>
                       ))}
+                    </div>
+                  )}
+                  {message.showSupportActions && (
+                    <div className="mt-3 space-y-2 border-t border-paper-line pt-3">
+                      <p className="text-xs font-semibold text-text-soft">Contact customer care</p>
+                      <div className="flex flex-wrap gap-2">
+                        <a
+                          href={`tel:${CUSTOMER_CARE_PHONE}`}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-on-ink hover:opacity-90"
+                        >
+                          <Phone className="h-3.5 w-3.5" />
+                          Call
+                        </a>
+                        <a
+                          href={whatsappUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 rounded-full bg-banyan px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+                        >
+                          <MessageCircle className="h-3.5 w-3.5" />
+                          WhatsApp
+                        </a>
+                      </div>
                     </div>
                   )}
                 </div>

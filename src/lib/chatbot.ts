@@ -1,20 +1,49 @@
-import faqData from "./faq.json";
-
 export type ChatbotMessage = {
   role: "user" | "assistant";
   content: string;
 };
 
-type FaqEntry = {
+type AppKnowledgeEntry = {
   keywords: string[];
   answer: string;
   links?: { label: string; href: string }[];
 };
 
-const TOPICS: FaqEntry[] = faqData as FaqEntry[];
-
 const FALLBACK_ANSWER =
-  'I can help with finding rides, offering rides, rider QR codes, donations, safety, accounts, and admin workflows. Try asking something like "How do I offer a ride?" or "How do donations work?"';
+  "I do not have a clear answer for that yet, but I have saved the question for review so the Backseat team can add it to the assistant.";
+
+const APPLICATION_KNOWLEDGE: AppKnowledgeEntry[] = [
+  {
+    keywords: ["home", "homepage", "landing page", "main page", "start page"],
+    answer:
+      "The homepage introduces Backseat, shows live platform stats, explains that rides are free, and points people toward finding a ride, offering a ride, and learning how donations work.",
+    links: [{ label: "Home", href: "/" }],
+  },
+  {
+    keywords: ["navigation", "menu", "navbar", "header", "footer", "where can i go", "pages"],
+    answer:
+      "The main navigation links to Find a Ride, Offer a Ride, How It Works, Charity Impact, Top Contributors, and About Us. After login, users also get dashboard links for trips, rides, donations, payments, impact, profile, and QR tools.",
+    links: [{ label: "Dashboard", href: "/dashboard" }],
+  },
+  {
+    keywords: ["application flow", "app flow", "user flow", "workflow", "process in app", "full flow"],
+    answer:
+      "Backseat has two main flows. Passengers register, search for a matching route, send a join request, travel if accepted, then may donate voluntarily through the rider charity QR. Riders create a profile, submit vehicle details for admin verification, offer rides, manage join requests, and show their charity QR after a completed trip.",
+    links: [{ label: "Find a Ride", href: "/find-a-ride" }, { label: "Offer a Ride", href: "/offer-a-ride" }],
+  },
+  {
+    keywords: ["roles", "user roles", "passenger", "rider", "admin", "who can use"],
+    answer:
+      "The app supports passengers, riders, and admins. Passengers find rides, request seats, chat, donate, and manage trips. Riders offer verified rides, manage requests, maintain a charity QR, and track impact. Admins verify riders and vehicles, manage users, charities, rides, donations, reports, fraud flags, leaderboards, and audit logs.",
+    links: [{ label: "Admin Portal", href: "/admin" }],
+  },
+  {
+    keywords: ["features", "functionality", "what features", "modules", "what can app do"],
+    answer:
+      "Backseat includes registration, login, rider onboarding, vehicle verification, ride search, ride offers, join requests, ride chat, notifications, charity QR donations, receipts, impact tracking, payment history, rider profiles, reports, blocks, SOS alerts, leaderboard controls, and admin tools.",
+    links: [{ label: "Safety Centre", href: "/safety" }],
+  },
+];
 
 const STOP_WORDS = new Set([
   "i", "me", "my", "we", "our", "you", "your", "he", "she", "it", "they",
@@ -29,11 +58,7 @@ const STOP_WORDS = new Set([
 ]);
 
 function tokenize(text: string): string[] {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
-    .split(/\s+/)
-    .filter((w) => w.length > 1);
+  return text.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter((word) => word.length > 1 && !STOP_WORDS.has(word));
 }
 
 function toStem(word: string): string {
@@ -44,93 +69,37 @@ function toStem(word: string): string {
   return word;
 }
 
-function extractMeaningfulWords(text: string): string[] {
-  return tokenize(text).filter((w) => !STOP_WORDS.has(w));
-}
-
-function singleMatch(questionStems: Set<string>, questionWords: Set<string>, keyword: string): boolean {
-  const stem = toStem(keyword);
-  return questionWords.has(keyword) || questionStems.has(stem);
-}
-
-function multiMatch(questionStems: Set<string>, questionWords: Set<string>, keyword: string): boolean {
-  const parts = keyword.split(/\s+/).filter((p) => !STOP_WORDS.has(p));
-  if (parts.length === 0) return false;
-  return parts.every((part) => singleMatch(questionStems, questionWords, part));
-}
-
-function computeScore(question: string, keywords: string[]): { total: number; multi: number } {
-  const qWords = extractMeaningfulWords(question);
+function computeScore(question: string, keywords: string[]) {
+  const qWords = tokenize(question);
   const qStems = new Set(qWords.map(toStem));
   const qWordSet = new Set(qWords);
-
   let total = 0;
   let multi = 0;
 
   for (const keyword of keywords) {
-    const kw = keyword.toLowerCase().trim();
-    const isMulti = kw.includes(" ");
-    const matched = isMulti ? multiMatch(qStems, qWordSet, kw) : singleMatch(qStems, qWordSet, kw);
+    const parts = keyword.toLowerCase().trim().split(/\s+/).filter((part) => !STOP_WORDS.has(part));
+    const matched = parts.length > 0 && parts.every((part) => qWordSet.has(part) || qStems.has(toStem(part)));
     if (matched) {
-      total += isMulti ? 3 : 1;
-      if (isMulti) multi += 1;
+      total += parts.length > 1 ? 3 : 1;
+      if (parts.length > 1) multi += 1;
     }
   }
 
   return { total, multi };
 }
 
+function findBestAppAnswer(question: string) {
+  return APPLICATION_KNOWLEDGE.map((topic) => ({ topic, ...computeScore(question, topic.keywords) }))
+    .filter((item) => item.total > 0)
+    .sort((a, b) => b.total - a.total || b.multi - a.multi)[0]?.topic ?? null;
+}
+
 export function answerBackseatQuestion(messages: ChatbotMessage[]) {
   const latestQuestion = [...messages].reverse().find((message) => message.role === "user")?.content ?? "";
+  if (!latestQuestion.trim()) return { answer: FALLBACK_ANSWER, links: [], found: false, source: "fallback" as const };
 
-  if (!latestQuestion.trim()) {
-    return { answer: FALLBACK_ANSWER, links: [] };
-  }
-
-  const normalized = latestQuestion.toLowerCase().trim();
-
-  // Exact-phrase high-priority intents that are hard to capture with token matching
-  if (/how (does|it|do|to).*(work|works)/.test(normalized) && !/(donat|upi|qr|offer|find)/.test(normalized)) {
-    const hi = TOPICS.find((t) => t.answer.startsWith("For riders:"));
-    if (hi) {
-      return { answer: hi.answer, links: hi.links ?? [] };
-    }
-  }
-
-  // "who built this app" style questions
-  if (/\b(built|developed|created|made|developed) by\b/.test(normalized) || /who built|by whom|which company/.test(normalized)) {
-    const by = TOPICS.find((t) => t.answer.includes("VitalitySoft"));
-    if (by) {
-      return { answer: by.answer, links: by.links ?? [] };
-    }
-  }
-
-  // Track per-topic score with the keywords that matched, to break ties by specificity
-  const scoredTopics = TOPICS.map((topic) => {
-    const { total, multi } = computeScore(normalized, topic.keywords);
-    return { topic, total, multi };
-  })
-    .filter((t) => t.total > 0)
-    .sort((a, b) => b.total - a.total || b.multi - a.multi);
-
-  if (scoredTopics.length === 0) {
-    return { answer: FALLBACK_ANSWER, links: [] };
-  }
-
-  const best = scoredTopics[0];
-  const second = scoredTopics[1];
-
-  const unique =
-    !second ||
-    best.total > second.total ||
-    (best.total === second.total && best.multi > second.multi);
-
-  if (!unique) {
-    return { answer: FALLBACK_ANSWER, links: [] };
-  }
-
-  return {
-    answer: best.topic.answer,
-    links: best.topic.links ?? [],
-  };
+  const appTopic = findBestAppAnswer(latestQuestion);
+  return appTopic
+    ? { answer: appTopic.answer, links: appTopic.links ?? [], found: true, source: "application" as const }
+    : { answer: FALLBACK_ANSWER, links: [], found: false, source: "fallback" as const };
 }
