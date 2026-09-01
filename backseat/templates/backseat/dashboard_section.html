@@ -12,8 +12,8 @@
   <div class="fade-up">
     <h1 class="font-display text-3xl font-bold text-ink sm:text-4xl">{{ section }}</h1>
     <p class="mt-2 text-sm text-text-soft">
-      {% if section == "My rides" %}Manage your published ride offers, incoming join requests, and passenger communication.
-      {% elif section == "My trips" %}View the rides you&apos;ve requested or joined as a passenger.
+      {% if section == "My Rides" %}Manage your published ride offers, incoming join requests, and passenger communication.
+      {% elif section == "My Trips" %}Rides you&apos;ve requested to join, and their status.
       {% elif section == "Donations" or section == "Payments" %}All voluntary donations associated with your journeys.
       {% else %}Track the collective charitable impact of your trips.{% endif %}
     </p>
@@ -22,7 +22,7 @@
   <!-- ========================================== -->
   <!-- 1. MY RIDES SECTION                        -->
   <!-- ========================================== -->
-  {% if section == "My rides" %}
+  {% if section == "My Rides" %}
     <div class="mt-8">
       <!-- Status Tabs -->
       <div class="flex gap-2 border-b border-paper-line pb-4">
@@ -81,7 +81,7 @@
               <!-- Passenger Requests for this offer -->
               <div class="mt-4">
                 <p class="text-xs font-bold uppercase tracking-wider text-text-soft mb-3">
-                  Passenger Requests ({{ offer.joins.count }})
+                  Ride requests ({{ offer.joins.count }})
                 </p>
 
                 {% if offer.joins.all %}
@@ -145,7 +145,7 @@
                           </button>
 
                           <div id="chat-box-{{ join.id }}" class="mt-2 hidden rounded-2xl border border-paper-line bg-white p-3">
-                            <div class="max-h-48 space-y-2 overflow-y-auto pr-1">
+                            <div class="max-h-48 space-y-2 overflow-y-auto pr-1 live-chat-messages" data-ride-id="{{ offer.id }}" data-join-id="{{ join.id }}" data-current-user-id="{{ request.user.profile.id }}">
                               {% if join.messages.all %}
                                 {% for m in join.messages.all %}
                                   <div class="flex {% if m.sender_id == request.user.profile.id %}justify-end{% else %}justify-start{% endif %}">
@@ -159,10 +159,10 @@
                               {% endif %}
                             </div>
 
-                            <form method="post" action="{% url 'send_join_message' join.id %}" class="mt-2 flex gap-2">
+                            <form method="post" action="{% url 'send_join_message' join.id %}" class="live-chat-form mt-2 flex gap-2" data-ride-id="{{ offer.id }}" data-join-id="{{ join.id }}">
                               {% csrf_token %}
                               <input type="hidden" name="next" value="{% url 'my_rides' %}?status={{ status_filter }}">
-                              <input type="text" name="body" placeholder="Send pickup update…" required class="flex-1 rounded-full border border-paper-line bg-paper px-3 py-1.5 text-xs outline-none focus:border-marigold">
+                              <input type="text" name="body" placeholder="Type a message..." required class="flex-1 rounded-full border border-paper-line bg-paper px-3 py-1.5 text-xs outline-none focus:border-marigold">
                               <button type="submit" class="rounded-full bg-ink px-3 py-1.5 text-xs font-bold text-on-ink hover:bg-ink-soft">Send</button>
                             </form>
                           </div>
@@ -181,7 +181,7 @@
             <i data-lucide="car" class="mx-auto h-8 w-8 text-text-soft/60"></i>
             <p class="mt-2 text-sm font-medium">No ride offers in this tab.</p>
             <a href="{% url 'offer_a_ride' %}" class="mt-4 inline-flex items-center gap-1.5 rounded-full bg-ink px-5 py-2.5 text-xs font-bold text-on-ink hover:bg-ink-soft">
-              Publish a New Ride Offer
+              + Offer a new ride
             </a>
           </div>
         {% endif %}
@@ -191,7 +191,7 @@
   <!-- ========================================== -->
   <!-- 2. MY TRIPS SECTION                        -->
   <!-- ========================================== -->
-  {% elif section == "My trips" %}
+  {% elif section == "My Trips" %}
     <div class="mt-8 space-y-4">
       {% if joins %}
         {% for join in joins %}

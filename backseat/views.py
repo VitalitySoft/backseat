@@ -104,6 +104,61 @@ def audit(request, action, target_type="", target_id=""):
     )
 
 
+def notify_admins(type_, title, body, link="/admin"):
+    admins = UserProfile.objects.filter(Q(role="ADMIN") | Q(user__is_superuser=True)).distinct()
+    Notification.objects.bulk_create([
+        Notification(user_profile=admin, type=type_, title=title, body=body, link=link)
+        for admin in admins
+    ])
+
+
+def notify_join_status(join, status):
+    route = f"{join.ride_offer.start_location} to {join.ride_offer.destination}"
+    notifications = {
+        "ACCEPTED": {
+            "type": "RIDE_ACCEPTED",
+            "title": "Ride request accepted",
+            "body": f"Your request to join the ride from {route} was accepted.",
+            "link": "/dashboard/my-trips",
+        },
+        "DECLINED": {
+            "type": "RIDE_DECLINED",
+            "title": "Ride request declined",
+            "body": f"Your request to join the ride from {route} wasn't accepted this time.",
+            "link": "/dashboard/my-trips",
+        },
+        "COMPLETED": {
+            "type": "RIDE_COMPLETED",
+            "title": "Ride completed",
+            "body": "Your ride is marked complete. If you'd like, you can scan the rider's charity QR to support their cause.",
+            "link": "/dashboard/my-trips",
+        },
+        "CANCELLED": {
+            "type": "RIDE_CANCELLED",
+            "title": "Ride request cancelled",
+            "body": f"The request for the ride from {route} was cancelled.",
+            "link": "/dashboard",
+        },
+    }
+    data = notifications.get(status)
+    if not data:
+        return
+    recipient = join.ride_offer.rider.user_profile if status == "CANCELLED" else join.passenger
+    Notification.objects.create(user_profile=recipient, **data)
+
+
+def notify_join_message(join, sender, body, sender_is_rider):
+    recipient = join.passenger if sender_is_rider else join.ride_offer.rider.user_profile
+    sender_name = sender.user.get_full_name() or sender.user.username
+    Notification.objects.create(
+        user_profile=recipient,
+        type="NEW_MESSAGE",
+        title=f"New message from {sender_name}",
+        body=body[:120],
+        link="/dashboard/my-trips" if sender_is_rider else "/dashboard/my-rides",
+    )
+
+
 def body_json(request):
     if request.content_type == "application/json":
         try:
@@ -423,15 +478,7 @@ def ride_detail(request, ride_id):
                 body = request.POST.get("body", "").strip()
                 if body:
                     Message.objects.create(ride_join=target_join, sender=user_profile, body=body)
-                    recipient = target_join.passenger if is_owner else ride.rider.user_profile
-                    sender_name = user_profile.user.get_full_name() or user_profile.user.username
-                    Notification.objects.create(
-                        user_profile=recipient,
-                        type="MESSAGE",
-                        title=f"New chat message from {sender_name}",
-                        body=f"{sender_name}: {body[:60]}",
-                        link=f"/rides/{ride.id}",
-                    )
+                    notify_join_message(target_join, user_profile, body, is_owner)
             return redirect("ride_detail", ride_id=ride.id)
 
     chat_messages = []
@@ -551,6 +598,10 @@ def donate(request, code):
         )
 
     campaign = Campaign.objects.filter(charity=charity, is_active=True).order_by("-started_at").first()
+    ride_join = None
+    ride_join_id = request.GET.get("join") or request.POST.get("ride_join_id")
+    if ride_join_id:
+        ride_join = RideJoin.objects.filter(id=ride_join_id, ride_offer__rider=rider).first()
 
     if request.method == "POST":
         amount_raw = request.POST.get("amount", "0")
@@ -562,18 +613,26 @@ def donate(request, code):
         if amount <= 0:
             messages.error(request, "Please choose or enter a valid donation amount.")
             return redirect("donate", code=code)
-
-        donor_name = request.POST.get("donor_name", "").strip() or "A kind traveller"
-        ref = f"DON-{uuid.uuid4().hex[:8].upper()}"
-        tx_ref = f"UPI-{uuid.uuid4().hex[:8].upper()}"
+        if amount > 100000:
+            messages.error(request, "For amounts above ₹1,00,000 please contact us directly.")
+            return redirect("donate", code=code)
+        if not rider.is_vehicle_verified:
+            messages.error(request, "This charity QR isn't active yet - the rider's verification is still in progress.")
+            return redirect("donate", code=code)
 
         passenger_profile = profile_for(request.user) if request.user.is_authenticated else None
+        donor_name = (
+            passenger_profile.user.get_full_name() or passenger_profile.user.username
+        ) if passenger_profile else request.POST.get("donor_name", "").strip() or "A kind traveller"
+        ref = f"DON-{uuid.uuid4().hex[:8].upper()}"
+        tx_ref = f"UPI-{uuid.uuid4().hex[:8].upper()}"
 
         donation = Donation.objects.create(
             donation_ref=ref,
             amount=amount,
             rider=rider,
             passenger=passenger_profile,
+            ride_join=ride_join,
             charity=charity,
             campaign=campaign,
             status="SUCCESS",
@@ -585,11 +644,19 @@ def donate(request, code):
 
         Notification.objects.create(
             user_profile=rider.user_profile,
-            type="DONATION",
-            title="New charity donation received",
-            body=f"₹{amount:,.0f} was contributed to {charity.name} via your Backseat QR.",
+            type="DONATION_COMPLETED",
+            title="A donation came through your QR",
+            body=f"Someone you gave a ride to donated ₹{amount:,.0f} to charity.",
             link="/dashboard/donations",
         )
+        if passenger_profile:
+            Notification.objects.create(
+                user_profile=passenger_profile,
+                type="DONATION_COMPLETED",
+                title="Thank you for your donation",
+                body=f"Your donation of ₹{amount:,.0f} was received. Receipt: {donation.donation_ref}.",
+                link=f"/donate/receipt/{donation.id}",
+            )
 
         audit(request, f"Donation of ₹{amount} recorded", "Donation", donation.id)
         return redirect("receipt", donation_id=donation.id)
@@ -607,6 +674,7 @@ def donate(request, code):
             "campaign": campaign,
             "upi_link": upi_link,
             "upi_vpa": upi_vpa,
+            "ride_join": ride_join,
         },
     )
 
@@ -752,7 +820,7 @@ def dashboard_section(request, section):
 
     context = {"section": section, "profile": user_profile, "rider": rider}
 
-    if section == "My rides":
+    if section == "My Rides":
         if not rider:
             messages.info(request, "Set up your vehicle profile to offer and manage rides.")
             return redirect("become_a_rider")
@@ -772,7 +840,7 @@ def dashboard_section(request, section):
         context["completed_count"] = RideOffer.objects.filter(rider=rider, status="COMPLETED").count()
         context["cancelled_count"] = RideOffer.objects.filter(rider=rider, status="CANCELLED").count()
 
-    elif section == "My trips":
+    elif section == "My Trips":
         joins = (
             RideJoin.objects.filter(passenger=user_profile)
             .select_related("ride_offer__rider__user_profile__user")
@@ -901,7 +969,7 @@ def update_join(request, join_id):
         return redirect("dashboard")
 
     if action == "accept" and is_rider:
-        accepted_count = RideJoin.objects.filter(ride_offer=join.ride_offer, status="ACCEPTED").count()
+        accepted_count = RideJoin.objects.filter(ride_offer=join.ride_offer, status__in=["ACCEPTED", "COMPLETED"]).exclude(id=join.id).count()
         if accepted_count >= join.ride_offer.seats_available:
             messages.error(request, f"You have already accepted {accepted_count} passenger(s), reaching your vehicle's limit.")
             return redirect("my_rides")
@@ -978,15 +1046,7 @@ def send_join_message(request, join_id):
     body = request.POST.get("body", "").strip()
     if body:
         Message.objects.create(ride_join=join, sender=user_profile, body=body)
-        recipient = join.passenger if is_rider else join.ride_offer.rider.user_profile
-        sender_name = user_profile.user.get_full_name() or user_profile.user.username
-        Notification.objects.create(
-            user_profile=recipient,
-            type="MESSAGE",
-            title=f"New message from {sender_name}",
-            body=f"{sender_name}: {body[:60]}",
-            link=f"/rides/{join.ride_offer_id}",
-        )
+        notify_join_message(join, user_profile, body, is_rider)
         messages.success(request, "Message sent.")
 
     next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or f"/rides/{join.ride_offer_id}"
@@ -1035,11 +1095,20 @@ def toggle_sharing(request):
 def report_user(request, user_id):
     reporter = profile_for(request.user)
     reported = get_object_or_404(UserProfile, id=user_id)
+    if reported.id == reporter.id:
+        messages.error(request, "You can't report yourself.")
+        return redirect(request.POST.get("next") or "dashboard")
     reason = request.POST.get("reason", "Safety concern")
     details = request.POST.get("details", "")
 
     Report.objects.create(
         reporter=reporter, reported=reported, reason=reason, details=details, status="OPEN"
+    )
+    notify_admins(
+        "REPORT_FILED",
+        "New safety report",
+        f"{reporter.user.get_full_name() or reporter.user.username} reported {reported.user.get_full_name() or reported.user.username}.",
+        "/admin?tab=reports",
     )
     audit(request, f"Report filed against user #{user_id}", "Report", user_id)
     messages.success(request, "Report submitted for admin safety review.")
@@ -1142,6 +1211,13 @@ def admin_action(request, kind, item_id):
         if action_type == "toggle_block":
             item.is_blocked = not item.is_blocked
             item.save(update_fields=["is_blocked"])
+            Notification.objects.create(
+                user_profile=item,
+                type="ADMIN_USER_UPDATE",
+                title="Account status updated",
+                body="Your account has been suspended by the Backseat admin team." if item.is_blocked else "Your account access has been restored by the Backseat admin team.",
+                link="/dashboard",
+            )
             audit(request, f"Admin {'blocked' if item.is_blocked else 'unblocked'} user #{item_id}", "User", item_id)
             messages.success(request, f"User {'blocked' if item.is_blocked else 'unblocked'}.")
 
@@ -1151,6 +1227,13 @@ def admin_action(request, kind, item_id):
         if action_type == "toggle_verify":
             item.is_vehicle_verified = not item.is_vehicle_verified
             item.save(update_fields=["is_vehicle_verified"])
+            Notification.objects.create(
+                user_profile=item.user_profile,
+                type="VEHICLE_VERIFICATION",
+                title="Vehicle verification updated",
+                body="Your vehicle has been verified. You can now publish rides and share your charity QR." if item.is_vehicle_verified else "Your vehicle verification has been paused by the admin team.",
+                link="/dashboard/qr",
+            )
             audit(request, f"Admin {'verified' if item.is_vehicle_verified else 'unverified'} vehicle for rider #{item_id}", "RiderProfile", item_id)
             messages.success(request, f"Rider vehicle {'verified' if item.is_vehicle_verified else 'unverified'}.")
         elif action_type == "toggle_leaderboard":
@@ -1165,6 +1248,13 @@ def admin_action(request, kind, item_id):
         if action_type == "cancel":
             item.status = "CANCELLED"
             item.save(update_fields=["status"])
+            Notification.objects.create(
+                user_profile=item.rider.user_profile,
+                type="ADMIN_RIDE_UPDATE",
+                title="Ride offer cancelled",
+                body=f"Your ride from {item.start_location} to {item.destination} was cancelled by the admin team.",
+                link="/dashboard/my-rides",
+            )
             audit(request, f"Admin cancelled ride offer #{item_id}", "RideOffer", item_id)
             messages.success(request, f"Ride offer #{item_id} cancelled.")
 
@@ -1174,6 +1264,14 @@ def admin_action(request, kind, item_id):
         if action_type == "refund":
             item.status = "REFUNDED"
             item.save(update_fields=["status"])
+            if item.passenger:
+                Notification.objects.create(
+                    user_profile=item.passenger,
+                    type="DONATION_REFUNDED",
+                    title="Donation refunded",
+                    body=f"Donation {item.donation_ref} has been marked as refunded.",
+                    link="/dashboard/payments",
+                )
             audit(request, f"Admin refunded donation #{item_id}", "Donation", item_id)
             messages.success(request, f"Donation #{item.donation_ref} marked as refunded.")
 
@@ -1273,7 +1371,7 @@ def api_rider_onboard(request):
         return json_error("Authentication required", 401)
     profile = profile_for(request.user)
     data = body_json(request)
-    rider, _ = RiderProfile.objects.get_or_create(
+    rider, created = RiderProfile.objects.get_or_create(
         user_profile=profile,
         defaults={
             "charity_code": f"BS-{uuid.uuid4().hex[:6].upper()}",
@@ -1296,6 +1394,13 @@ def api_rider_onboard(request):
     if "bio" in data:
         rider.bio = data["bio"]
     rider.save()
+    if created:
+        notify_admins(
+            "RIDER_ONBOARDING",
+            "New rider onboarding",
+            f"{profile.user.get_full_name() or profile.user.username} submitted rider and vehicle details for review.",
+            "/admin?tab=riders",
+        )
     return JsonResponse({"rider": rider_payload(rider)})
 
 
@@ -1328,6 +1433,12 @@ def api_rider_qr_regenerate(request):
         return json_error("Rider profile not found", 404)
     rider.charity_code = f"BS-{uuid.uuid4().hex[:6].upper()}"
     rider.save(update_fields=["charity_code"])
+    AuditLog.objects.create(
+        actor=profile,
+        action="QR_REGENERATED",
+        target_type="RiderProfile",
+        target_id=str(rider.id),
+    )
     return JsonResponse({"charityCode": rider.charity_code})
 
 
@@ -1410,20 +1521,28 @@ def api_ride_join(request, ride_id):
     if not request.user.is_authenticated:
         return json_error("Authentication required", 401)
     profile = profile_for(request.user)
+    if profile.role == "ADMIN":
+        return json_error("Admin accounts cannot join rides", 403)
     ride = get_object_or_404(RideOffer, id=ride_id, status="ACTIVE")
+    if ride.departure_at and ride.departure_at <= timezone.now():
+        return json_error("This ride has already departed", 409)
     if ride.rider.user_profile_id == profile.id:
         return json_error("You cannot join your own ride offer.")
-    join, created = RideJoin.objects.get_or_create(
-        ride_offer=ride, passenger=profile, defaults={"status": "REQUESTED"}
-    )
+    accepted_count = RideJoin.objects.filter(ride_offer=ride, status__in=["ACCEPTED", "COMPLETED"]).count()
+    if accepted_count >= ride.seats_available:
+        return json_error("All seats for this ride are already filled", 409)
+    existing = RideJoin.objects.filter(ride_offer=ride, passenger=profile, status__in=["REQUESTED", "ACCEPTED"]).first()
+    if existing:
+        return json_error("You've already requested to join this ride", 409)
+    join = RideJoin.objects.create(ride_offer=ride, passenger=profile, status="REQUESTED")
     Notification.objects.create(
         user_profile=ride.rider.user_profile,
         type="RIDE_REQUEST",
         title="New ride request",
-        body=f"{profile.user.get_full_name()} requested your ride.",
+        body=f"{profile.user.get_full_name() or profile.user.username} would like to join your ride from {ride.start_location} to {ride.destination}.",
         link="/dashboard/my-rides",
     )
-    return JsonResponse({"id": join.id, "status": join.status, "created": created})
+    return JsonResponse({"id": join.id, "status": join.status, "created": True})
 
 
 @csrf_exempt
@@ -1441,12 +1560,19 @@ def api_join_detail(request, ride_id, join_id):
     data = body_json(request)
     if request.method in {"POST", "PATCH"} and data.get("status"):
         new_status = data["status"]
+        is_rider = join.ride_offer.rider.user_profile_id == profile.id
+        is_passenger = join.passenger_id == profile.id
+        if new_status == "CANCELLED" and not is_passenger:
+            return json_error("Only the passenger can cancel their own request", 403)
+        if new_status in {"ACCEPTED", "DECLINED", "COMPLETED"} and not is_rider:
+            return json_error("Only the rider can update this request", 403)
         if new_status == "ACCEPTED":
-            accepted = RideJoin.objects.filter(ride_offer=join.ride_offer, status="ACCEPTED").count()
+            accepted = RideJoin.objects.filter(ride_offer=join.ride_offer, status__in=["ACCEPTED", "COMPLETED"]).exclude(id=join.id).count()
             if accepted >= join.ride_offer.seats_available:
                 return json_error(f"Cannot accept: vehicle seats cap reached ({join.ride_offer.seats_available}).")
         join.status = new_status
         join.save(update_fields=["status"])
+        notify_join_status(join, new_status)
     return JsonResponse({"join": {"id": join.id, "status": join.status, "rideId": join.ride_offer_id, "passengerId": join.passenger_id}})
 
 
@@ -1466,8 +1592,12 @@ def api_join_messages(request, ride_id, join_id):
     if request.method == "POST":
         data = body_json(request)
         body = (data.get("body") or "").strip()
-        if body:
-            Message.objects.create(ride_join=join, sender=profile, body=body)
+        if join.status not in {"REQUESTED", "ACCEPTED", "COMPLETED"}:
+            return json_error("This ride request is no longer active", 409)
+        if not body:
+            return json_error("Message can't be empty", 400)
+        Message.objects.create(ride_join=join, sender=profile, body=body)
+        notify_join_message(join, profile, body, join.ride_offer.rider.user_profile_id == profile.id)
 
     messages_qs = Message.objects.filter(ride_join=join).select_related("sender__user").order_by("created_at")
     return JsonResponse({
@@ -1489,7 +1619,7 @@ def api_donate_initiate(request):
     data = body_json(request)
     rider = get_object_or_404(RiderProfile, charity_code=data.get("charityCode"))
     if not rider.is_vehicle_verified:
-        return json_error("This rider's charity QR is pending verification.", 403)
+        return json_error("This rider's charity QR is not active yet - verification is pending.", 403)
     charity = Charity.objects.filter(is_active=True).first()
     if not charity:
         return json_error("No active charity configured", 500)
@@ -1502,18 +1632,25 @@ def api_donate_initiate(request):
 
     if amount <= 0:
         return json_error("Enter an amount greater than ₹0")
+    if amount > 100000:
+        return json_error("For amounts above ₹1,00,000 please contact us directly")
 
     passenger_profile = profile_for(request.user) if request.user.is_authenticated else None
+    ride_join = None
+    ride_join_id = data.get("rideJoinId") or data.get("ride_join_id")
+    if ride_join_id:
+        ride_join = RideJoin.objects.filter(id=ride_join_id, ride_offer__rider=rider).first()
 
     donation = Donation.objects.create(
         donation_ref=ref,
         amount=amount,
         rider=rider,
         passenger=passenger_profile,
+        ride_join=ride_join,
         charity=charity,
         campaign=campaign,
         status="PENDING",
-        donor_display_name_snapshot=data.get("donorName") or "A kind traveller",
+        donor_display_name_snapshot=(passenger_profile.user.get_full_name() or passenger_profile.user.username) if passenger_profile else data.get("donorName") or "A kind traveller",
     )
 
     upi_vpa = os.getenv("CHARITY_UPI_VPA", charity.beneficiary_upi_vpa)
@@ -1527,10 +1664,33 @@ def api_donate_initiate(request):
 def api_donate_confirm(request):
     data = body_json(request)
     donation = get_object_or_404(Donation, id=data.get("donationId"))
+    donation_ref = data.get("donationRef")
+    if donation_ref and donation.donation_ref != donation_ref:
+        return json_error("Donation not found", 404)
+    if donation.status == "SUCCESS":
+        return JsonResponse({"donationId": donation.id, "transactionRef": donation.transaction_ref})
+    if donation.status != "PENDING":
+        return json_error(f"Donation is {donation.status.lower()} and cannot be confirmed", 409)
     donation.status = "SUCCESS"
     donation.transaction_ref = data.get("transactionRef") or f"UPI-{uuid.uuid4().hex[:8].upper()}"
     donation.completed_at = timezone.now()
     donation.save()
+    if donation.passenger:
+        Notification.objects.create(
+            user_profile=donation.passenger,
+            type="DONATION_COMPLETED",
+            title="Thank you for your donation",
+            body=f"Your donation of ₹{donation.amount:,.0f} was received. Receipt: {donation.donation_ref}.",
+            link=f"/donate/receipt/{donation.id}",
+        )
+    if donation.rider:
+        Notification.objects.create(
+            user_profile=donation.rider.user_profile,
+            type="DONATION_COMPLETED",
+            title="A donation came through your QR",
+            body=f"Someone you gave a ride to donated ₹{donation.amount:,.0f} to charity.",
+            link="/dashboard/donations",
+        )
     return JsonResponse({"donationId": donation.id, "status": donation.status})
 
 
@@ -1585,11 +1745,19 @@ def api_reports(request):
     profile = profile_for(request.user)
     data = body_json(request)
     reported = get_object_or_404(UserProfile, id=data.get("reportedUserId"))
+    if reported.id == profile.id:
+        return json_error("You can't report yourself")
     report = Report.objects.create(
         reporter=profile,
         reported=reported,
         reason=data.get("reason", "Safety concern"),
         details=data.get("details", ""),
+    )
+    notify_admins(
+        "REPORT_FILED",
+        "New safety report",
+        f"{profile.user.get_full_name() or profile.user.username} reported {reported.user.get_full_name() or reported.user.username}.",
+        "/admin?tab=reports",
     )
     return JsonResponse({"id": report.id, "status": report.status})
 
@@ -1612,7 +1780,17 @@ def api_sos(request):
     profile = profile_for(request.user)
     data = body_json(request)
     AuditLog.objects.create(
-        actor=profile, action="Emergency SOS Alert", target_type="Safety", metadata_json=json.dumps(dict(data))
+        actor=profile,
+        action="SOS_TRIGGERED",
+        target_type="User",
+        target_id=str(profile.id),
+        metadata_json=str(data.get("context", ""))[:200],
+    )
+    notify_admins(
+        "SOS_ALERT",
+        "SOS alert triggered",
+        f"{profile.user.get_full_name() or profile.user.username} triggered an SOS alert.",
+        "/admin?tab=audit",
     )
     return JsonResponse({"ok": True, "message": "Emergency SOS logged. Contacting emergency services."})
 
@@ -2031,23 +2209,66 @@ def api_admin_update(request, kind, item_id):
         item = get_object_or_404(UserProfile, id=item_id)
         item.is_blocked = bool(data.get("isBlocked", not item.is_blocked))
         item.save(update_fields=["is_blocked"])
+        Notification.objects.create(
+            user_profile=item,
+            type="ADMIN_USER_UPDATE",
+            title="Account status updated",
+            body="Your account has been suspended by the Backseat admin team." if item.is_blocked else "Your account access has been restored by the Backseat admin team.",
+            link="/dashboard",
+        )
     elif kind == "rider":
         item = get_object_or_404(RiderProfile, id=item_id)
+        was_verified = item.is_vehicle_verified
         item.is_vehicle_verified = bool(data.get("isVehicleVerified", not item.is_vehicle_verified))
         item.hidden_from_leaderboard = bool(data.get("hiddenFromLeaderboard", item.hidden_from_leaderboard))
         item.save()
+        if was_verified != item.is_vehicle_verified:
+            Notification.objects.create(
+                user_profile=item.user_profile,
+                type="VEHICLE_VERIFICATION",
+                title="Vehicle verification updated",
+                body="Your vehicle has been verified. You can now publish rides and share your charity QR." if item.is_vehicle_verified else "Your vehicle verification has been paused by the admin team.",
+                link="/dashboard/qr",
+            )
     elif kind == "ride":
         item = get_object_or_404(RideOffer, id=item_id)
+        old_status = item.status
         item.status = data.get("status", item.status)
         item.save(update_fields=["status"])
+        if old_status != item.status and item.status == "CANCELLED":
+            Notification.objects.create(
+                user_profile=item.rider.user_profile,
+                type="ADMIN_RIDE_UPDATE",
+                title="Ride offer cancelled",
+                body=f"Your ride from {item.start_location} to {item.destination} was cancelled by the admin team.",
+                link="/dashboard/my-rides",
+            )
     elif kind == "donation":
         item = get_object_or_404(Donation, id=item_id)
+        old_status = item.status
         item.status = data.get("status", item.status)
         item.save(update_fields=["status"])
+        if old_status != item.status and item.status == "REFUNDED" and item.passenger:
+            Notification.objects.create(
+                user_profile=item.passenger,
+                type="DONATION_REFUNDED",
+                title="Donation refunded",
+                body=f"Donation {item.donation_ref} has been marked as refunded.",
+                link="/dashboard/payments",
+            )
     elif kind == "report":
         item = get_object_or_404(Report, id=item_id)
+        old_status = item.status
         item.status = data.get("status", item.status)
         item.save(update_fields=["status"])
+        if old_status != item.status:
+            Notification.objects.create(
+                user_profile=item.reporter,
+                type="REPORT_STATUS",
+                title="Report status updated",
+                body=f"Your safety report is now {item.status.lower()}.",
+                link="/dashboard",
+            )
     elif kind == "charity":
         item = get_object_or_404(Charity, id=item_id)
         for field in ["name", "registration_number", "description", "beneficiary_upi_vpa", "beneficiary_name"]:

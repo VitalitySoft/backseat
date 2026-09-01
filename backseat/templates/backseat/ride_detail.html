@@ -133,7 +133,7 @@
           </div>
 
           <!-- Message History -->
-          <div class="my-4 max-h-72 space-y-3 overflow-y-auto pr-2">
+          <div class="my-4 max-h-72 space-y-3 overflow-y-auto pr-2 live-chat-messages" data-ride-id="{{ ride.id }}" data-join-id="{{ my_join.id }}" data-current-user-id="{{ request.user.profile.id }}">
             {% if chat_messages %}
               {% for msg in chat_messages %}
                 <div class="flex {% if msg.sender_id == request.user.profile.id %}justify-end{% else %}justify-start{% endif %}">
@@ -150,7 +150,7 @@
           </div>
 
           <!-- Send Message Form -->
-          <form method="post" action="{% url 'send_join_message' my_join.id %}" class="flex gap-2">
+          <form method="post" action="{% url 'send_join_message' my_join.id %}" class="live-chat-form flex gap-2" data-ride-id="{{ ride.id }}" data-join-id="{{ my_join.id }}">
             {% csrf_token %}
             <input type="hidden" name="next" value="{% url 'ride_detail' ride.id %}">
             <input
@@ -194,7 +194,7 @@
                 </div>
 
                 <!-- Chat history for this join -->
-                <div class="max-h-48 space-y-2 overflow-y-auto pr-1 my-2">
+                <div class="max-h-48 space-y-2 overflow-y-auto pr-1 my-2 live-chat-messages" data-ride-id="{{ ride.id }}" data-join-id="{{ rj.id }}" data-current-user-id="{{ request.user.profile.id }}">
                   {% if rj.messages.all %}
                     {% for m in rj.messages.all %}
                       <div class="flex {% if m.sender_id == request.user.profile.id %}justify-end{% else %}justify-start{% endif %}">
@@ -209,7 +209,7 @@
                   {% endif %}
                 </div>
 
-                <form method="post" action="{% url 'send_join_message' rj.id %}" class="mt-3 flex gap-2">
+                <form method="post" action="{% url 'send_join_message' rj.id %}" class="live-chat-form mt-3 flex gap-2" data-ride-id="{{ ride.id }}" data-join-id="{{ rj.id }}">
                   {% csrf_token %}
                   <input type="hidden" name="next" value="{% url 'ride_detail' ride.id %}">
                   <input type="text" name="body" placeholder="Reply to {{ rj.passenger.user.first_name|default:'passenger' }}…" required class="flex-1 rounded-full border border-paper-line bg-white px-3 py-1.5 text-xs outline-none focus:border-marigold">
@@ -265,4 +265,8 @@
     </div>
   </div>
 </div>
+
+<script>
+  window.BackseatLiveChatCurrentUserId = "{{ request.user.profile.id }}";
+</script>
 {% endblock %}

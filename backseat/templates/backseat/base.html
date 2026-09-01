@@ -61,7 +61,7 @@
     <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 md:px-6">
       
       <!-- Brand Logo -->
-      <a href="{% url 'home' %}" class="inline-flex items-center gap-2.5 text-ink transition-transform hover:scale-[1.02]">
+      <a href="{% if is_admin %}{% url 'admin_console' %}{% else %}{% url 'home' %}{% endif %}" class="inline-flex items-center gap-2.5 text-ink transition-transform hover:scale-[1.02]">
         <div class="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-marigold shadow-md shadow-ink/20">
           <!-- Backseat Bike Logo Mark (from static/logo.svg) -->
           <svg viewBox="0 0 40 40" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
@@ -91,12 +91,20 @@
 
       <!-- Desktop Nav Links -->
       <nav class="hidden items-center gap-6 lg:flex">
-        <a href="{% url 'find_a_ride' %}" class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep">Find a Ride</a>
-        <a href="{% url 'offer_a_ride' %}" class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep">Offer a Ride</a>
-        <a href="{% url 'how_it_works' %}" class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep">How It Works</a>
-        <a href="{% url 'charity_impact' %}" class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep">Charity Impact</a>
-        <a href="{% url 'top_contributors' %}" class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep">Top Contributors</a>
-        <a href="{% url 'about' %}" class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep">About Us</a>
+        {% if not is_admin %}
+          <a href="{% url 'find_a_ride' %}" class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep">Find a Ride</a>
+          <a href="{% url 'offer_a_ride' %}" class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep">Offer a Ride</a>
+          {% if request.user.is_authenticated %}
+            <a href="{% url 'my_trips' %}" class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep">My Trips</a>
+            <a href="{% url 'my_rides' %}" class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep">My Rides</a>
+            <a href="{% url 'top_contributors' %}" class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep">Top Contributors</a>
+          {% else %}
+            <a href="{% url 'how_it_works' %}" class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep">How It Works</a>
+            <a href="{% url 'charity_impact' %}" class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep">Charity Impact</a>
+            <a href="{% url 'top_contributors' %}" class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep">Top Contributors</a>
+            <a href="{% url 'about' %}" class="text-sm font-medium text-text-soft transition-colors hover:text-marigold-deep">About Us</a>
+          {% endif %}
+        {% endif %}
       </nav>
 
       <!-- Desktop Actions / Auth -->
@@ -106,25 +114,21 @@
           <div class="relative" id="notif-dropdown-wrapper">
             <button id="notif-btn" type="button" class="relative flex h-9 w-9 items-center justify-center rounded-full text-text-soft hover:bg-paper-dim hover:text-ink transition-colors" aria-label="Notifications">
               <i data-lucide="bell" class="h-5 w-5"></i>
-              {% if unread_count > 0 %}
-                <span class="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-deep px-1 text-[9px] font-bold text-white shadow-sm">
-                  {{ unread_count }}
-                </span>
-              {% endif %}
+              <span id="notif-count" class="{% if unread_count == 0 %}hidden {% endif %}absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-deep px-1 text-[9px] font-bold text-white shadow-sm">
+                {{ unread_count }}
+              </span>
             </button>
             <div id="notif-menu" class="absolute right-0 mt-2 hidden w-80 overflow-hidden rounded-2xl border border-paper-line bg-white shadow-xl shadow-ink/10 z-50">
               <div class="flex items-center justify-between border-b border-paper-line px-4 py-3 bg-paper-dim/40">
                 <p class="text-sm font-semibold text-ink">Notifications</p>
-                {% if unread_count > 0 %}
-                  <button id="mark-all-read-btn" class="flex items-center gap-1 text-xs font-medium text-marigold-deep hover:underline">
-                    <i data-lucide="check-check" class="h-3.5 w-3.5"></i> Mark all read
-                  </button>
-                {% endif %}
+                <button id="mark-all-read-btn" class="{% if unread_count == 0 %}hidden {% endif %}flex items-center gap-1 text-xs font-medium text-marigold-deep hover:underline">
+                  <i data-lucide="check-check" class="h-3.5 w-3.5"></i> Mark all read
+                </button>
               </div>
-              <div class="max-h-80 overflow-y-auto divide-y divide-paper-line">
+              <div id="notif-list" class="max-h-80 overflow-y-auto divide-y divide-paper-line">
                 {% if recent_notifications %}
                   {% for n in recent_notifications %}
-                    <a href="{{ n.link|default:'#' }}" class="block px-4 py-3 text-left transition-colors hover:bg-paper-dim/50 {% if not n.is_read %}bg-marigold-pale/25{% endif %}">
+                    <a href="{{ n.link|default:'#' }}" data-notification-id="{{ n.id }}" class="notification-item block px-4 py-3 text-left transition-colors hover:bg-paper-dim/50 {% if not n.is_read %}bg-marigold-pale/25{% endif %}">
                       <div class="flex items-start gap-2">
                         {% if not n.is_read %}<span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-marigold-deep"></span>{% endif %}
                         <div class="min-w-0 flex-1">
@@ -178,8 +182,14 @@
                 <a href="{% url 'donations' %}" class="flex items-center gap-2 px-4 py-2.5 text-sm text-ink hover:bg-paper-dim font-medium">
                   <i data-lucide="heart" class="h-4 w-4 text-text-soft"></i> Donations
                 </a>
+                <a href="{% url 'payments' %}" class="flex items-center gap-2 px-4 py-2.5 text-sm text-ink hover:bg-paper-dim font-medium">
+                  <i data-lucide="credit-card" class="h-4 w-4 text-text-soft"></i> Payments
+                </a>
+                <a href="{% url 'dashboard_impact' %}" class="flex items-center gap-2 px-4 py-2.5 text-sm text-ink hover:bg-paper-dim font-medium">
+                  <i data-lucide="sparkles" class="h-4 w-4 text-text-soft"></i> Impact
+                </a>
                 <a href="{% url 'profile' %}" class="flex items-center gap-2 px-4 py-2.5 text-sm text-ink hover:bg-paper-dim font-medium">
-                  <i data-lucide="user" class="h-4 w-4 text-text-soft"></i> Profile Settings
+                  <i data-lucide="user" class="h-4 w-4 text-text-soft"></i> Profile
                 </a>
               {% endif %}
               <div class="border-t border-paper-line my-1"></div>
@@ -199,6 +209,27 @@
 
       <!-- Mobile Hamburger Toggle -->
       <div class="flex items-center gap-2 lg:hidden">
+        {% if request.user.is_authenticated %}
+          <div class="relative" id="mobile-notif-dropdown-wrapper">
+            <button id="mobile-notif-btn" type="button" class="relative flex h-9 w-9 items-center justify-center rounded-full text-text-soft hover:bg-paper-dim hover:text-ink transition-colors" aria-label="Notifications">
+              <i data-lucide="bell" class="h-5 w-5"></i>
+              <span id="mobile-notif-count" class="{% if unread_count == 0 %}hidden {% endif %}absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-deep px-1 text-[9px] font-bold text-white shadow-sm">
+                {{ unread_count }}
+              </span>
+            </button>
+            <div id="mobile-notif-menu" class="absolute right-0 mt-2 hidden w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-paper-line bg-white shadow-xl shadow-ink/10 z-50">
+              <div class="flex items-center justify-between border-b border-paper-line px-4 py-3 bg-paper-dim/40">
+                <p class="text-sm font-semibold text-ink">Notifications</p>
+                <button id="mobile-mark-all-read-btn" class="{% if unread_count == 0 %}hidden {% endif %}flex items-center gap-1 text-xs font-medium text-marigold-deep hover:underline">
+                  <i data-lucide="check-check" class="h-3.5 w-3.5"></i> Mark all read
+                </button>
+              </div>
+              <div id="mobile-notif-list" class="max-h-80 overflow-y-auto divide-y divide-paper-line">
+                <p class="px-4 py-8 text-center text-xs text-text-soft">Loading notifications...</p>
+              </div>
+            </div>
+          </div>
+        {% endif %}
         <button id="mobile-menu-btn" type="button" class="rounded-full p-2 text-ink hover:bg-paper-dim" aria-label="Toggle menu">
           <i data-lucide="menu" id="hamburger-icon" class="h-6 w-6"></i>
           <i data-lucide="x" id="close-icon" class="h-6 w-6 hidden"></i>
@@ -209,12 +240,16 @@
     <!-- Mobile Drawer Menu -->
     <div id="mobile-drawer" class="hidden border-t border-paper-line bg-paper px-4 py-4 lg:hidden">
       <nav class="flex flex-col gap-1">
-        <a href="{% url 'find_a_ride' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">Find a Ride</a>
-        <a href="{% url 'offer_a_ride' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">Offer a Ride</a>
-        <a href="{% url 'how_it_works' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">How It Works</a>
-        <a href="{% url 'charity_impact' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">Charity Impact</a>
-        <a href="{% url 'top_contributors' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">Top Contributors</a>
-        <a href="{% url 'about' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">About Us</a>
+        {% if not is_admin %}
+          <a href="{% url 'find_a_ride' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">Find a Ride</a>
+          <a href="{% url 'offer_a_ride' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">Offer a Ride</a>
+          {% if not request.user.is_authenticated %}
+            <a href="{% url 'how_it_works' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">How It Works</a>
+            <a href="{% url 'charity_impact' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">Charity Impact</a>
+            <a href="{% url 'top_contributors' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">Top Contributors</a>
+            <a href="{% url 'about' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">About Us</a>
+          {% endif %}
+        {% endif %}
 
         {% if request.user.is_authenticated %}
           <div class="border-t border-paper-line my-2 pt-2">
@@ -224,7 +259,15 @@
               <a href="{% url 'dashboard' %}" class="rounded-xl px-3 py-2.5 text-sm font-semibold text-ink hover:bg-paper-dim">Dashboard</a>
               <a href="{% url 'my_rides' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">My Rides</a>
               <a href="{% url 'my_trips' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">My Trips</a>
-              <a href="{% url 'profile' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">Profile Settings</a>
+              {% if nav_rider %}
+                <a href="{% url 'dashboard_qr' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">Charity QR</a>
+              {% else %}
+                <a href="{% url 'become_a_rider' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">Become a Rider</a>
+              {% endif %}
+              <a href="{% url 'donations' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">Donations</a>
+              <a href="{% url 'payments' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">Payments</a>
+              <a href="{% url 'dashboard_impact' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">Impact</a>
+              <a href="{% url 'profile' %}" class="rounded-xl px-3 py-2.5 text-sm font-medium text-text hover:bg-paper-dim">Profile</a>
             {% endif %}
             <form action="{% url 'logout' %}" method="post" class="mt-2">
               {% csrf_token %}
@@ -474,10 +517,131 @@
       // Notification Dropdown toggle
       const notifBtn = document.getElementById("notif-btn");
       const notifMenu = document.getElementById("notif-menu");
+      const mobileNotifBtn = document.getElementById("mobile-notif-btn");
+      const mobileNotifMenu = document.getElementById("mobile-notif-menu");
+      const notifCount = document.getElementById("notif-count");
+      const mobileNotifCount = document.getElementById("mobile-notif-count");
+      const notifList = document.getElementById("notif-list");
+      const mobileNotifList = document.getElementById("mobile-notif-list");
+      const markAllReadBtn = document.getElementById("mark-all-read-btn");
+      const mobileMarkAllReadBtn = document.getElementById("mobile-mark-all-read-btn");
+
+      function escapeHtml(value) {
+        return String(value || "").replace(/[&<>"']/g, (ch) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          "\"": "&quot;",
+          "'": "&#39;",
+        }[ch]));
+      }
+
+      function timeAgo(value) {
+        const then = new Date(value).getTime();
+        if (!Number.isFinite(then)) return "";
+        const seconds = Math.max(0, Math.floor((Date.now() - then) / 1000));
+        if (seconds < 60) return "just now";
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return minutes + " minute" + (minutes === 1 ? "" : "s") + " ago";
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return hours + " hour" + (hours === 1 ? "" : "s") + " ago";
+        const days = Math.floor(hours / 24);
+        return days + " day" + (days === 1 ? "" : "s") + " ago";
+      }
+
+      function updateNotificationBadge(unreadCount) {
+        const badges = [notifCount, mobileNotifCount].filter(Boolean);
+        const markButtons = [markAllReadBtn, mobileMarkAllReadBtn].filter(Boolean);
+        if (unreadCount > 0) {
+          badges.forEach((badge) => {
+            badge.textContent = unreadCount > 9 ? "9+" : String(unreadCount);
+            badge.classList.remove("hidden");
+          });
+          markButtons.forEach((button) => button.classList.remove("hidden"));
+        } else {
+          badges.forEach((badge) => {
+            badge.textContent = "0";
+            badge.classList.add("hidden");
+          });
+          markButtons.forEach((button) => button.classList.add("hidden"));
+        }
+      }
+
+      function renderNotifications(notifications, targetList) {
+        if (!targetList) return;
+        if (!notifications.length) {
+          targetList.innerHTML = '<p class="px-4 py-8 text-center text-xs text-text-soft">No notifications yet.</p>';
+          return;
+        }
+        targetList.innerHTML = notifications.map((n) => {
+          const unreadDot = n.isRead ? "" : '<span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-marigold-deep"></span>';
+          const unreadClass = n.isRead ? "" : "bg-marigold-pale/25";
+          return `
+            <a href="${escapeHtml(n.link || "#")}" data-notification-id="${escapeHtml(n.id)}" class="notification-item block px-4 py-3 text-left transition-colors hover:bg-paper-dim/50 ${unreadClass}">
+              <div class="flex items-start gap-2">
+                ${unreadDot}
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-medium text-ink leading-tight">${escapeHtml(n.title)}</p>
+                  <p class="mt-0.5 text-xs text-text-soft leading-relaxed">${escapeHtml(n.body)}</p>
+                  <p class="mt-1 text-[10px] text-text-soft/70">${timeAgo(n.createdAt)}</p>
+                </div>
+              </div>
+            </a>
+          `;
+        }).join("");
+        if (window.lucide) lucide.createIcons();
+      }
+
+      async function loadNotifications() {
+        if (!notifList && !mobileNotifList) return;
+        try {
+          const res = await fetch("/api/notifications", { headers: { "Accept": "application/json" } });
+          if (!res.ok) return;
+          const data = await res.json();
+          renderNotifications(data.notifications || [], notifList);
+          renderNotifications(data.notifications || [], mobileNotifList);
+          updateNotificationBadge(Number(data.unreadCount || 0));
+        } catch (err) {
+          // Keep the last rendered notifications if polling fails.
+        }
+      }
+
       if (notifBtn && notifMenu) {
         notifBtn.addEventListener("click", (e) => {
           e.stopPropagation();
           notifMenu.classList.toggle("hidden");
+          if (mobileNotifMenu) mobileNotifMenu.classList.add("hidden");
+          loadNotifications();
+        });
+      }
+
+      if (mobileNotifBtn && mobileNotifMenu) {
+        mobileNotifBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          mobileNotifMenu.classList.toggle("hidden");
+          if (notifMenu) notifMenu.classList.add("hidden");
+          loadNotifications();
+        });
+      }
+
+      function bindNotificationList(list) {
+        if (!list) return;
+        list.addEventListener("click", async (e) => {
+          const item = e.target.closest("[data-notification-id]");
+          if (!item) return;
+          await fetch(`/api/notifications/${item.dataset.notificationId}`, { method: "PATCH" });
+          item.classList.remove("bg-marigold-pale/25");
+          loadNotifications();
+        });
+      }
+
+      bindNotificationList(notifList);
+      bindNotificationList(mobileNotifList);
+      if (notifList || mobileNotifList) {
+        loadNotifications();
+        setInterval(loadNotifications, 30000);
+        document.addEventListener("visibilitychange", () => {
+          if (!document.hidden) loadNotifications();
         });
       }
 
@@ -489,14 +653,104 @@
         if (notifMenu && !notifMenu.contains(e.target) && notifBtn && !notifBtn.contains(e.target)) {
           notifMenu.classList.add("hidden");
         }
+        if (mobileNotifMenu && !mobileNotifMenu.contains(e.target) && mobileNotifBtn && !mobileNotifBtn.contains(e.target)) {
+          mobileNotifMenu.classList.add("hidden");
+        }
       });
 
-      // Mark all read action
-      const markAllReadBtn = document.getElementById("mark-all-read-btn");
-      if (markAllReadBtn) {
-        markAllReadBtn.addEventListener("click", async () => {
+      function bindMarkAllRead(button) {
+        if (!button) return;
+        button.addEventListener("click", async () => {
           await fetch("/api/notifications/read-all", { method: "POST" });
-          window.location.reload();
+          updateNotificationBadge(0);
+          loadNotifications();
+        });
+      }
+      bindMarkAllRead(markAllReadBtn);
+      bindMarkAllRead(mobileMarkAllReadBtn);
+
+      // Live ride chat
+      const liveChatBoxes = Array.from(document.querySelectorAll(".live-chat-messages"));
+      const liveChatForms = Array.from(document.querySelectorAll(".live-chat-form"));
+
+      function renderChatMessages(box, messages) {
+        const currentUserId = String(box.dataset.currentUserId || window.BackseatLiveChatCurrentUserId || "");
+        if (!messages.length) {
+          box.innerHTML = '<p class="py-8 text-center text-xs text-text-soft">No messages yet. Say hello to coordinate the pickup!</p>';
+          return;
+        }
+        box.innerHTML = messages.map((message) => {
+          const isMine = String(message.senderId) === currentUserId;
+          const created = message.createdAt ? new Date(message.createdAt) : null;
+          const time = created && !Number.isNaN(created.getTime())
+            ? created.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+            : "";
+          return `
+            <div class="flex ${isMine ? "justify-end" : "justify-start"}">
+              <div class="max-w-[80%] rounded-xl px-3 py-1.5 text-xs ${isMine ? "bg-ink text-on-ink" : "bg-paper-dim text-ink border border-paper-line"}">
+                <p class="text-[9px] font-bold opacity-75 mb-0.5">${escapeHtml(message.senderName || "")}</p>
+                <p>${escapeHtml(message.body || "")}</p>
+                ${time ? `<p class="mt-1 text-[9px] opacity-60 text-right">${escapeHtml(time)}</p>` : ""}
+              </div>
+            </div>
+          `;
+        }).join("");
+        box.scrollTop = box.scrollHeight;
+      }
+
+      async function loadChatBox(box) {
+        const rideId = box.dataset.rideId;
+        const joinId = box.dataset.joinId;
+        if (!rideId || !joinId) return;
+        try {
+          const res = await fetch(`/api/rides/${rideId}/joins/${joinId}/messages`, {
+            headers: { "Accept": "application/json" },
+          });
+          if (!res.ok) return;
+          const data = await res.json();
+          renderChatMessages(box, data.messages || []);
+        } catch (err) {
+          // Leave current messages in place if polling fails.
+        }
+      }
+
+      function loadAllChats() {
+        liveChatBoxes.forEach(loadChatBox);
+      }
+
+      liveChatForms.forEach((form) => {
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const input = form.querySelector("input[name='body']");
+          const body = input ? input.value.trim() : "";
+          const rideId = form.dataset.rideId;
+          const joinId = form.dataset.joinId;
+          if (!body || !rideId || !joinId) return;
+          const submitButton = form.querySelector("button[type='submit']");
+          if (submitButton) submitButton.disabled = true;
+          try {
+            const res = await fetch(`/api/rides/${rideId}/joins/${joinId}/messages`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Accept": "application/json" },
+              body: JSON.stringify({ body }),
+            });
+            if (res.ok) {
+              input.value = "";
+              liveChatBoxes
+                .filter((box) => box.dataset.rideId === rideId && box.dataset.joinId === joinId)
+                .forEach(loadChatBox);
+            }
+          } finally {
+            if (submitButton) submitButton.disabled = false;
+          }
+        });
+      });
+
+      if (liveChatBoxes.length) {
+        loadAllChats();
+        setInterval(loadAllChats, 5000);
+        document.addEventListener("visibilitychange", () => {
+          if (!document.hidden) loadAllChats();
         });
       }
 

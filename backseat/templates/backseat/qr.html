@@ -3,31 +3,29 @@
 {% block content %}
 <div class="mx-auto max-w-xl px-6 py-16">
   <div class="fade-up text-center">
-    <span class="inline-flex items-center gap-1.5 rounded-full bg-marigold-pale px-3 py-1 font-mono text-[11px] uppercase tracking-wider font-bold text-marigold-deep">
-      <i data-lucide="qr-code" class="h-3.5 w-3.5"></i> Rider Charity QR
-    </span>
-    <h1 class="mt-4 font-display text-3xl font-bold text-ink">Your Dedicated Charity QR</h1>
+    <h1 class="font-display text-3xl font-bold text-ink">Show Charity QR</h1>
     <p class="mt-2 text-sm text-text-soft">
-      Show this QR to passengers at the end of your ride. 100% of voluntary contributions route directly to charity partners.
+      Hand your phone to your passenger, or let them scan straight off your screen. No app download needed on their end.
     </p>
   </div>
 
+  {% if rider.is_vehicle_verified %}
   <!-- QR Card Shell -->
-  <div class="mt-8 overflow-hidden rounded-3xl border border-paper-line bg-white shadow-lg shadow-ink/5">
+  <div class="mt-8 overflow-hidden rounded-3xl border border-paper-line bg-white p-8 text-center shadow-sm">
     
     <!-- Top info bar -->
-    <div class="border-b border-paper-line bg-paper-dim/50 px-6 py-4 text-center">
+    <div class="text-center">
       <p class="font-display text-lg font-bold text-ink">
-        {{ rider.user_profile.user.get_full_name|default:rider.user_profile.user.username }}
+        {{ rider.user_profile.user.get_full_name|default:rider.user_profile.user.username }}&apos;s Charity QR
       </p>
-      <p class="text-xs text-text-soft">
-        {{ rider.vehicle_make }} {{ rider.vehicle_model }} &bull; <span class="font-mono">{{ rider.vehicle_plate }}</span>
+      <p class="mt-1 text-xs text-text-soft">
+        Ask your passenger to scan this after the ride
       </p>
     </div>
 
     <!-- QR Code Center Image -->
-    <div class="flex flex-col items-center justify-center p-8">
-      <div class="rounded-2xl border border-paper-line bg-white p-4 shadow-sm">
+    <div class="flex flex-col items-center justify-center">
+      <div class="mt-6 rounded-2xl border-4 border-paper-dim bg-white p-4">
         <img
           src="{% url 'qr_png' rider.charity_code %}"
           alt="Charity QR Code"
@@ -36,41 +34,41 @@
       </div>
 
       <div class="mt-4 text-center">
-        <p class="font-mono text-xs font-bold uppercase tracking-wider text-text-soft">Charity Code</p>
-        <p class="mt-0.5 font-mono text-base font-bold text-marigold-deep">{{ rider.charity_code }}</p>
+        <p class="break-all font-mono text-[11px] text-text-soft">{{ request.scheme }}://{{ request.get_host }}/donate/{{ rider.charity_code }}</p>
       </div>
     </div>
 
     <!-- Action Buttons -->
-    <div class="border-t border-paper-line bg-paper/40 p-6 space-y-3">
-      <div class="flex gap-2">
+    <div class="mt-6 space-y-3">
+      <div class="flex flex-col gap-2 sm:flex-row">
         <button
           type="button"
           id="copy-link-btn"
           onclick="copyDonationLink('{{ request.scheme }}://{{ request.get_host }}/donate/{{ rider.charity_code }}')"
-          class="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-ink py-3 text-xs font-bold text-on-ink hover:bg-ink-soft shadow-sm transition-transform active:scale-98"
+          class="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-paper-line bg-white py-2.5 text-xs font-bold text-ink hover:border-marigold"
         >
-          <i data-lucide="copy" class="h-3.5 w-3.5"></i> <span id="copy-text">Copy Donation Link</span>
+          <i data-lucide="copy" class="h-3.5 w-3.5"></i> <span id="copy-text">Copy link</span>
         </button>
 
-        <a
-          href="{% url 'qr_png' rider.charity_code %}"
-          download="backseat-qr-{{ rider.charity_code }}.png"
-          class="flex items-center justify-center gap-1.5 rounded-full border border-paper-line bg-white px-5 py-3 text-xs font-bold text-ink hover:border-marigold shadow-sm"
-        >
-          <i data-lucide="download" class="h-3.5 w-3.5"></i> Download
-        </a>
+        <button type="button" onclick="regenerateQr()" class="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-paper-dim py-2.5 text-xs font-bold text-ink hover:bg-marigold-pale">
+          <i data-lucide="refresh-cw" class="h-3.5 w-3.5"></i> Regenerate
+        </button>
       </div>
 
-      <button
-        type="button"
-        onclick="window.print()"
-        class="w-full flex items-center justify-center gap-1.5 rounded-full border border-paper-line bg-white py-2.5 text-xs font-bold text-ink hover:border-marigold"
-      >
-        <i data-lucide="printer" class="h-3.5 w-3.5"></i> Print Sticker Sheet
-      </button>
+      <p class="rounded-xl bg-banyan-pale px-3 py-2 text-[11px] leading-relaxed text-banyan-deep">
+        This code only identifies you for credit. All donations are paid directly to our registered charity beneficiary. You cannot change where the money goes.
+      </p>
     </div>
   </div>
+  {% else %}
+    <div class="mx-auto mt-10 max-w-sm rounded-3xl border border-dashed border-paper-line bg-white p-8 text-center">
+      <i data-lucide="clock" class="mx-auto h-8 w-8 text-marigold-deep"></i>
+      <p class="mt-3 font-display text-lg text-ink">Verification pending</p>
+      <p class="mt-2 text-sm text-text-soft">
+        Your charity QR activates automatically once our team verifies your vehicle details. This usually takes less than a day.
+      </p>
+    </div>
+  {% endif %}
 
   <!-- Sharing Status Toggle Form -->
   <div class="mt-6 rounded-2xl border border-paper-line bg-white p-5 flex items-center justify-between shadow-sm">
@@ -97,9 +95,15 @@
       const txt = document.getElementById('copy-text');
       if (txt) {
         txt.textContent = 'Link Copied!';
-        setTimeout(() => { txt.textContent = 'Copy Donation Link'; }, 2000);
+        setTimeout(() => { txt.textContent = 'Copy link'; }, 2000);
       }
     });
+  }
+
+  async function regenerateQr() {
+    if (!confirm('Regenerating creates a new QR code. Any old printed/shared QR will stop working. Continue?')) return;
+    await fetch("{% url 'api_rider_qr_regenerate' %}", { method: "POST" });
+    window.location.reload();
   }
 </script>
 {% endblock %}
