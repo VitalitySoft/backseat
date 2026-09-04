@@ -39,13 +39,13 @@ export function SharingToggle({
   }
 
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-paper-line bg-white px-5 py-4">
+    <div className="flex items-start gap-5 rounded-2xl border border-paper-line bg-white px-5 py-4">
       <button
         role="switch"
         aria-checked={active}
         onClick={toggle}
         disabled={loading}
-        className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
+        className={`relative mt-0.5 h-7 w-12 shrink-0 grow-0 basis-12 rounded-full transition-colors ${
           active ? "bg-banyan" : "bg-paper-line"
         }`}
       >
@@ -55,7 +55,7 @@ export function SharingToggle({
           }`}
         />
       </button>
-      <div>
+      <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-ink">
           Ride sharing is {active ? "ON" : "OFF"}
         </p>

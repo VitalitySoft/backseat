@@ -1,4 +1,4 @@
-import { AuthForm } from "@/components/auth-form";
+import { LoginForm } from "@/components/login-form";
 import { HeartHandshake } from "lucide-react";
 
 export const metadata = { title: "Log in — Backseat" };
@@ -18,7 +18,7 @@ export default function LoginPage() {
         <h1 className="font-display text-3xl text-ink">Welcome back</h1>
         <p className="mt-2 text-text-soft">Log in to continue your journey of kindness.</p>
         <div className="mt-8">
-          <AuthForm mode="login" />
+          <LoginForm />
         </div>
       </div>
     </div>

@@ -5,23 +5,21 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-type Mode = "login" | "register";
-
-export function AuthForm({ mode }: { mode: Mode }) {
+export function AuthForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "" });
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch(`/api/auth/${mode}`, {
+      const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(mode === "login" ? { email: form.email, password: form.password } : form),
+        body: JSON.stringify(form),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -39,18 +37,16 @@ export function AuthForm({ mode }: { mode: Mode }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {mode === "register" && (
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-text">Full name</label>
-          <input
-            required
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="w-full rounded-xl border border-paper-line bg-white px-4 py-3 text-sm outline-none focus:border-marigold focus:ring-2 focus:ring-marigold/30"
-            placeholder="Ravi Kumar"
-          />
-        </div>
-      )}
+      <div>
+        <label className="mb-1.5 block text-sm font-medium text-text">Full name</label>
+        <input
+          required
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          className="w-full rounded-xl border border-paper-line bg-white px-4 py-3 text-sm outline-none focus:border-marigold focus:ring-2 focus:ring-marigold/30"
+          placeholder="Ravi Kumar"
+        />
+      </div>
       <div>
         <label className="mb-1.5 block text-sm font-medium text-text">Email</label>
         <input
@@ -59,30 +55,19 @@ export function AuthForm({ mode }: { mode: Mode }) {
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
           className="w-full rounded-xl border border-paper-line bg-white px-4 py-3 text-sm outline-none focus:border-marigold focus:ring-2 focus:ring-marigold/30"
-          placeholder="you@example.com"
+          placeholder="you@gmail.com"
         />
+        <p className="mt-1.5 text-xs text-text-soft">
+          Use a real email — you'll log in with a one-time code sent here, no password needed.
+        </p>
       </div>
-      {mode === "register" && (
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-text">Phone (optional)</label>
-          <input
-            value={form.phone}
-            onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            className="w-full rounded-xl border border-paper-line bg-white px-4 py-3 text-sm outline-none focus:border-marigold focus:ring-2 focus:ring-marigold/30"
-            placeholder="+91 98100 00000"
-          />
-        </div>
-      )}
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-text">Password</label>
+        <label className="mb-1.5 block text-sm font-medium text-text">Phone (optional)</label>
         <input
-          required
-          type="password"
-          minLength={mode === "register" ? 8 : undefined}
-          value={form.password}
-          onChange={(e) => setForm({ ...form, password: e.target.value })}
+          value={form.phone}
+          onChange={(e) => setForm({ ...form, phone: e.target.value })}
           className="w-full rounded-xl border border-paper-line bg-white px-4 py-3 text-sm outline-none focus:border-marigold focus:ring-2 focus:ring-marigold/30"
-          placeholder="••••••••"
+          placeholder="+91 98100 00000"
         />
       </div>
 
@@ -91,25 +76,14 @@ export function AuthForm({ mode }: { mode: Mode }) {
       )}
 
       <Button type="submit" size="lg" className="w-full" disabled={loading}>
-        {loading ? "Please wait…" : mode === "login" ? "Log in" : "Create account"}
+        {loading ? "Please wait…" : "Create account"}
       </Button>
 
       <p className="text-center text-sm text-text-soft">
-        {mode === "login" ? (
-          <>
-            New here?{" "}
-            <Link href="/register" className="font-semibold text-marigold-deep hover:underline">
-              Create an account
-            </Link>
-          </>
-        ) : (
-          <>
-            Already have an account?{" "}
-            <Link href="/login" className="font-semibold text-marigold-deep hover:underline">
-              Log in
-            </Link>
-          </>
-        )}
+        Already have an account?{" "}
+        <Link href="/login" className="font-semibold text-marigold-deep hover:underline">
+          Log in
+        </Link>
       </p>
     </form>
   );

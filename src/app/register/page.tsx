@@ -12,7 +12,7 @@ export default function RegisterPage() {
           Create your account to offer a seat, find a ride, or support a journey with a donation.
         </p>
         <div className="mt-8">
-          <AuthForm mode="register" />
+          <AuthForm />
         </div>
       </div>
       <div className="hidden rounded-3xl bg-ink px-10 py-14 text-on-ink lg:block">
